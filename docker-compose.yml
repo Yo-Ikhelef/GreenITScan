@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.symfony
+    volumes:
+      - ./api-backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - api-backend/.env
+    command: php -S 0.0.0.0:8000 -t public
+    depends_on:
+      - database
+    container_name: api_backend
+  database:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: "YourPassword123"
+      MYSQL_DATABASE: "GreenITScan"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: "YourPassword123"
+    ports:
+      - "3306:3306"
+    volumes:
+      - GreenITScan_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: "mysqladmin ping -h localhost -u root -pYourPassword123"
+      interval: 10s
+      retries: 5
+    container_name: mariadb_database
+volumes:
+  GreenITScan_mariadb_data:
