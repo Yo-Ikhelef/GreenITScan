@@ -1,3 +1,42 @@
+# Dockerfile.symfony
+FROM php:8.3.6-cli
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libicu-dev \
+    libpq-dev \
+    libzip-dev \
+    libxml2-dev \
+    zip \
+    curl \
+    libonig-dev \
+    libssl-dev \
+    gnupg2 \
+    software-properties-common \
+    libfreetype6-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libmariadb-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install intl xml pdo pdo_pgsql pdo_mysql zip mbstring bcmath gd
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Set working directory
+WORKDIR /app
+# Copy Composer files first (to leverage Docker cache)
+COPY api-backend/composer.json api-backend/composer.lock /app/
+# Ensure correct permissions
+RUN chown -R www-data:www-data /app && chmod -R 775 /app
+# Install PHP dependencies
+RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+# Copy application files
+COPY . .
+# Set permissions for Symfony cache and logs
+RUN chown -R www-data:www-data /app && chmod -R 775 /app
+# Expose port 8000
+EXPOSE 8000
+# Start PHP built-in server
 # Use PHP 8.3.6-cli as specified
 FROM php:8.3.6-cli
 
