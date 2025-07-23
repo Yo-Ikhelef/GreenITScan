@@ -4,10 +4,10 @@ services:
       context: .
       dockerfile: docker/Dockerfile.frontend
     volumes:
-        - ./quasar-project:/app
+      - ./quasar-project:/app
     ports:
       - "8080:80"
-    command : quasar dev
+    command : npm run dev
     container_name: quasar-frontend
   backend:
     build:
