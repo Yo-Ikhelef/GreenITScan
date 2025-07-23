@@ -1,50 +1,32 @@
-# Stage 1: Build the Quasar application
-FROM node:18-alpine AS build
+# Utiliser une image Node.js
+FROM node:18
 
-# Set working directory
+# Définir le répertoire de travail
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY quasar-project/package*.json ./
+# Copier tout le projet Quasar d'abord
+COPY quasar-project/ .
 
-# Check if package.json exists
+# Vérifier si package.json existe
 RUN if [ ! -f package.json ]; then echo "Error: package.json not found in quasar-project/"; exit 1; fi
 
-# Validate package.json JSON syntax
+# Valider la syntaxe JSON de package.json
 RUN node -e "require('./package.json')" || { echo "Error: package.json is not valid JSON"; exit 1; }
 
-# Remove postinstall script to avoid quasar prepare
+# Supprimer le script postinstall pour éviter quasar prepare
 RUN if grep -q '"postinstall"' package.json; then \
       node -e "const pkg = require('./package.json'); delete pkg.scripts.postinstall; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));" \
     ; fi
 
-# Install dependencies with npm
+# Installer les dépendances (this will install Linux-compatible node_modules)
 RUN npm install
 
-# Copy the rest of the Quasar project
-COPY quasar-project/ .
-
-# Verify Quasar project structure
+# Vérifier la structure du projet Quasar
 RUN if [ ! -f quasar.config.js ]; then echo "Error: quasar.config.js not found, not a valid Quasar project"; exit 1; fi
 RUN if [ ! -d src ]; then echo "Error: src/ directory not found, not a valid Quasar project"; exit 1; fi
 
-# Build the Quasar application with npm
-RUN npm run dev
+# Exposer le port utilisé par Quasar en mode dev (par défaut 8080)
+EXPOSE 8080
 
-# Stage 2: Serve with Apache
-FROM httpd:alpine
-
-# Enable mod_rewrite for SPA routing
-RUN sed -i 's/#LoadModule rewrite_module/LoadModule rewrite_module/' /usr/local/apache2/conf/httpd.conf
-
-# Copy built files from the previous stage
-COPY --from=build /app/dist/spa /usr/local/apache2/htdocs/
-
-# Copy .htaccess for SPA routing
-COPY docker/.htaccess /usr/local/apache2/htdocs/.htaccess
-
-# Expose port 80
-EXPOSE 80
-
-# Start Apache in foreground
-CMD ["httpd-foreground"]
+# Lancer le serveur de dev
+CMD ["npm", "run", "dev"]

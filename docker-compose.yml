@@ -4,11 +4,15 @@ services:
       context: .
       dockerfile: docker/Dockerfile.frontend
     volumes:
-      - ./quasar-project:/app
+      - ./quasar-project/src:/app/src
+      - ./quasar-project/public:/app/public
+      - ./quasar-project/quasar.config.js:/app/quasar.config.js
+      - ./quasar-project/package.json:/app/package.json
+      - ./quasar-project/package-lock.json:/app/package-lock.json
     ports:
-      - "8080:80"
-    command : npm run dev
+      - "8080:8080"
     container_name: quasar-frontend
+
   backend:
     build:
       context: .
@@ -23,6 +27,7 @@ services:
     depends_on:
       - database
     container_name: api_backend
+
   database:
     image: mariadb:latest
     environment:
@@ -39,5 +44,6 @@ services:
       interval: 10s
       retries: 5
     container_name: mariadb_database
+
 volumes:
   GreenITScan_mariadb_data:
