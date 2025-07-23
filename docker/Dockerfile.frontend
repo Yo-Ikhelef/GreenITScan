@@ -28,6 +28,9 @@ RUN if [ ! -f quasar.config.js ]; then \
 RUN if [ ! -d src ]; then \
       echo "Error: src/ directory not found"; exit 1; fi
 
+      # Exposer le port utilisé par Quasar en mode dev (par défaut 8080)
+EXPOSE 9000
+
 # Exposer le port du dev server
 EXPOSE 9000
 
