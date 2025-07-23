@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     env_file:
       - api-backend/.env
-    command: php -S 0.0.0.0:8000 -t public
+    command: php -S 0.0.0.0:8000 -t public public/index.php
     depends_on:
       - database
     container_name: api_backend
