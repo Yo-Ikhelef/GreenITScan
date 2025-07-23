@@ -37,7 +37,6 @@ RUN composer update --no-dev --prefer-dist --optimize-autoloader --no-scripts --
 
 # Copy the rest of the Symfony application files
 COPY api-backend/ .
-
 # Set permissions for Symfony cache and logs
 RUN chown -R www-data:www-data /app && chmod -R 775 /app
 
