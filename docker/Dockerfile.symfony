@@ -25,7 +25,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 # Copy Composer files first (to leverage Docker cache)
-COPY backend/composer.json backend/composer.lock /app/
+COPY api-backend/composer.json api-backend/composer.lock /app/
 # Ensure correct permissions
 RUN chown -R www-data:www-data /app && chmod -R 775 /app
 # Install PHP dependencies
