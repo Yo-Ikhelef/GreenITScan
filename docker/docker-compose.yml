@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "8080:80"
+    container_name: quasar-frontend
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.symfony
+    ports:
+      - "3000:8000"
+    container_name: quasar-backend
+    environment:
+      - APP_ENV=prod
+      - APP_SECRET=your-secret-key-change-me
