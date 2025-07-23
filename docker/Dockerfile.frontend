@@ -29,7 +29,7 @@ RUN if [ ! -f quasar.config.js ]; then echo "Error: quasar.config.js not found, 
 RUN if [ ! -d src ]; then echo "Error: src/ directory not found, not a valid Quasar project"; exit 1; fi
 
 # Build the Quasar application with npm
-RUN npm run build
+RUN npm run dev
 
 # Stage 2: Serve with Apache
 FROM httpd:alpine
