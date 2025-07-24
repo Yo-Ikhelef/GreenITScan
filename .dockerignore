@@ -4,7 +4,6 @@ quasar-project/node_modules
 api-backend/var
 api-backend/vendor
 api-backend/.env.local
-api-backend/composer.lock
 .git
 .gitignore
 *.md

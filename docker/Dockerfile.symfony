@@ -29,14 +29,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /app
 
-# Copy composer.json (assume it exists locally)
-COPY api-backend/composer.json /app/
+# Copy Composer files first (to leverage Docker cache)
+COPY api-backend/composer.json api-backend/composer.lock /app/
 
-# Run composer update to generate dependencies
-RUN composer update --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+# Ensure correct permissions
+RUN chown -R www-data:www-data /app && chmod -R 775 /app
 
-# Copy the rest of the Symfony application files
-COPY api-backend/ .
+# Install PHP dependencies
+RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+
+# Copy application files
+COPY . .
+
 # Set permissions for Symfony cache and logs
 RUN chown -R www-data:www-data /app && chmod -R 775 /app
 
@@ -44,3 +48,4 @@ RUN chown -R www-data:www-data /app && chmod -R 775 /app
 EXPOSE 8000
 
 # Start PHP built-in server
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
