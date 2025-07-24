@@ -236,9 +236,16 @@ reset-backend:
 	docker compose exec backend php bin/console doctrine:database:create
 	docker compose exec backend php bin/console doctrine:schema:update --force
 
+wait-for-db:
+	@until [ "$$(docker inspect --format='{{.State.Health.Status}}' mariadb_database)" = "healthy" ]; do \
+		echo "⏳ En attente que MariaDB soit prêt..."; \
+		sleep 2; \
+	done
+
 install:
 	make build
 	make up
+	make wait-for-db
 	make update-backend
 
 reset-all:

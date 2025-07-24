@@ -33,16 +33,15 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: "YourPassword123"
       MYSQL_DATABASE: "GreenITScan"
-      MYSQL_USER: "root"
-      MYSQL_PASSWORD: "YourPassword123"
     ports:
       - "3306:3306"
     volumes:
       - GreenITScan_mariadb_data:/var/lib/mysql
     healthcheck:
-      test: "mysqladmin ping -h localhost -u root -pYourPassword123"
-      interval: 10s
-      retries: 5
+      test: ["CMD", "bash", "-c", "</dev/tcp/127.0.0.1/3306"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     container_name: mariadb_database
 
 volumes:
