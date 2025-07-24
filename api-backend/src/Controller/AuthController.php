@@ -9,8 +9,10 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use OpenApi\Attributes as OA;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 
-#[Route('/users', name: 'users_')]
+#[Route('/api/users', name: 'users_')]
 #[OA\Tag(name: "User")]
 class AuthController extends AbstractController
 {
@@ -58,10 +60,6 @@ class AuthController extends AbstractController
             return new JsonResponse(['error' => 'Email invalide'], 400);
         }
 
-        if (strlen($data['password']) < 8) {
-            return new JsonResponse(['error' => 'Le mot de passe doit contenir au moins 8 caractères'], 400);
-        }
-
         $existingUser = $em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
         if ($existingUser) {
             return new JsonResponse(['error' => 'Cet email est déjà utilisé'], 409);
@@ -78,11 +76,67 @@ class AuthController extends AbstractController
         return new JsonResponse(['message' => 'Inscription réussie'], 201);
     }
 
-
+    #[OA\Post(
+        description: "Authentifie un utilisateur et retourne un token JWT",
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string"),
+                    new OA\Property(property: "password", type: "string")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Authentification réussie",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "token", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 400,
+                description: "Requête invalide",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "error", type: "string")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Identifiants invalides",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "error", type: "string")
+                    ]
+                )
+            )
+        ]
+    )]
     #[Route('/login', name: 'user_login', methods: ['POST'])]
-    public function login(Request $request): JsonResponse
-    {
-        // ...
-        return new JsonResponse(['token' => 'jwt_token']);
+    public function login(
+        Request $request,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $hasher,
+        JWTTokenManagerInterface $jwtManager
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['email'], $data['password'])) {
+            return new JsonResponse(['error' => 'Email et mot de passe requis'], 400);
+        }
+
+        $user = $em->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        if (!$user || !$hasher->isPasswordValid($user, $data['password'])) {
+            return new JsonResponse(['error' => 'Identifiants invalides'], 401);
+        }
+
+        $token = $jwtManager->create($user);
+
+        return new JsonResponse(['token' => $token]);
     }
 }
