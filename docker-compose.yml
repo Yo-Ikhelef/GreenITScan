@@ -10,7 +10,7 @@ services:
       - ./quasar-project/package.json:/app/package.json
       - ./quasar-project/package-lock.json:/app/package-lock.json
     ports:
-      - "8080:8080"
+      - "9000:9000"
     container_name: quasar-frontend
 
   backend:

@@ -25,8 +25,8 @@ RUN npm install
 RUN if [ ! -f quasar.config.js ]; then echo "Error: quasar.config.js not found, not a valid Quasar project"; exit 1; fi
 RUN if [ ! -d src ]; then echo "Error: src/ directory not found, not a valid Quasar project"; exit 1; fi
 
-# Exposer le port utilisé par Quasar en mode dev (par défaut 8080)
-EXPOSE 8080
+# Exposer le port utilisé par Quasar en mode dev (par défaut 9000)
+EXPOSE 9000
 
 # Lancer le serveur de dev
 CMD ["npm", "run", "dev"]
