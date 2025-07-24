@@ -29,7 +29,7 @@ services:
     container_name: api_backend
 
   database:
-    image: mariadb:latest
+    image: mariadb:11.8.2
     environment:
       MYSQL_ROOT_PASSWORD: "YourPassword123"
       MYSQL_DATABASE: "GreenITScan"

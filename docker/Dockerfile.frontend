@@ -1,32 +1,35 @@
-# Utiliser une image Node.js
-FROM node:18
+# Dockerfile.frontend
+
+# Fixer une version stable de Node.js
+FROM node:18.19.1
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier tout le projet Quasar d'abord
+# Copier le projet Quasar
 COPY quasar-project/ .
 
-# Vérifier si package.json existe
-RUN if [ ! -f package.json ]; then echo "Error: package.json not found in quasar-project/"; exit 1; fi
+# Vérifier que le package.json existe
+RUN if [ ! -f package.json ]; then \
+      echo "Error: package.json not found in quasar-project/"; exit 1; \
+    fi
 
-# Valider la syntaxe JSON de package.json
-RUN node -e "require('./package.json')" || { echo "Error: package.json is not valid JSON"; exit 1; }
+# Vérifier que le JSON est valide
+RUN node -e "require('./package.json')" || \
+    { echo "Error: package.json is not valid JSON"; exit 1; }
 
-# Supprimer le script postinstall pour éviter quasar prepare
-RUN if grep -q '"postinstall"' package.json; then \
-      node -e "const pkg = require('./package.json'); delete pkg.scripts.postinstall; require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));" \
-    ; fi
-
-# Installer les dépendances (this will install Linux-compatible node_modules)
+# Installer les dépendances (le postinstall exécutera `quasar prepare`)
 RUN npm install
 
-# Vérifier la structure du projet Quasar
-RUN if [ ! -f quasar.config.js ]; then echo "Error: quasar.config.js not found, not a valid Quasar project"; exit 1; fi
-RUN if [ ! -d src ]; then echo "Error: src/ directory not found, not a valid Quasar project"; exit 1; fi
+# Vérifier la structure minimale du projet Quasar
+RUN if [ ! -f quasar.config.js ]; then \
+      echo "Error: quasar.config.js not found"; exit 1; fi
 
-# Exposer le port utilisé par Quasar en mode dev (par défaut 9000)
+RUN if [ ! -d src ]; then \
+      echo "Error: src/ directory not found"; exit 1; fi
+
+# Exposer le port du dev server
 EXPOSE 9000
 
-# Lancer le serveur de dev
+# Lancer le serveur de développement Quasar
 CMD ["npm", "run", "dev"]

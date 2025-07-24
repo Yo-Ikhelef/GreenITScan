@@ -20,10 +20,16 @@ help:
 	@echo "  make down                               Stop and remove Docker containers"
 	@echo "  make exec container=<container-name>    Execute bash in the specified container"
 	@echo "  make backend 						     Enter the backend container"
+	@echo "  make frontend                           Enter the frontend container"
 	@echo "  make database 						     Enter the database container"
 	@echo "  make recreate-schema                    Recreate the database schema"
 	@echo "  make fixtures                           Load database fixtures"
-	@echo "  make backend-preprod                    Enter the backend container for pre-production"
+	@echo "  make update-backend                     Update the backend dependencies and database"
+	@echo "  make reset-backend                      Reset the backend database and schema"
+	@echo "  make install                            Build and start Docker containers, update backend"
+	@echo "  make reset-all                          Reset all Docker containers and backend"
+	@echo "  make restart                            Restart Docker containers"
+	@echo "  make logs                               Show Docker logs in real-time"
 
 # Git Targets
 .PHONY: new-branch delete-branch list-branches list-branches-remote commit push pull status merge checkout
@@ -168,7 +174,7 @@ merge:
 	@echo "Branch '$(name)' merged successfully."
 
 # Docker Targets
-.PHONY: build up stop down exec backend database recreate-schema fixtures backend-preprod
+.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install reset-all restart logs
 build:
 	docker compose build
 	@echo "Docker images built."
@@ -197,9 +203,13 @@ backend:
 	@docker exec -ti api_backend bash
 	@echo "Entered backend container: api-backend."
 
+frontend:
+	@docker exec -ti quasar-frontend bash
+	@echo "Entered frontend container: quasar-frontend."
+
 database:
-	@docker exec -ti sqlserver_database bash
-	@echo "Entered database container: mariaDB."
+	@docker exec -ti mariadb_database bash
+	@echo "Entered database container: mariadb_database."
 
 recreate-schema:
 	@docker exec -ti api_backend php bin/console doctrine:schema:drop --force --full-database
@@ -211,7 +221,33 @@ fixtures:
 	@docker exec -ti api_backend php bin/console hautelook:fixtures:load -vvv
 	@echo "Database fixtures loaded."
 
-backend-preprod:
-	@docker exec -ti symfony_backend_preprod bash
-	@echo "Entered backend container: supply-management-backend-1."
+logs:
+	docker compose logs -f
 
+update-backend:
+	docker compose exec backend composer install
+	docker compose exec backend php bin/console doctrine:database:create --if-not-exists
+	docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+
+reset-backend:
+	docker compose exec backend composer install
+	docker compose exec backend rm -rf var/cache
+	docker compose exec backend php bin/console doctrine:database:drop --force --if-exists
+	docker compose exec backend php bin/console doctrine:database:create
+	docker compose exec backend php bin/console doctrine:schema:update --force
+
+install:
+	make build
+	make up
+	make update-backend
+
+reset-all:
+	make down
+	docker volume rm greenitscan_mariadb_data || true
+	make up
+	make reset-backend
+
+restart:
+	make down
+	make build
+	make up
