@@ -27,7 +27,7 @@ help:
 	@echo "  make update-backend                     Update the backend dependencies and database"
 	@echo "  make reset-backend                      Reset the backend database and schema"
 	@echo "  make install                            Build and start Docker containers, update backend"
-	@echo "  make reset-all                          Reset all Docker containers and backend"
+	@echo "  make reset-project                      Reset all Docker containers and backend"
 	@echo "  make restart                            Restart Docker containers"
 	@echo "  make logs                               Show Docker logs in real-time"
 
@@ -174,7 +174,7 @@ merge:
 	@echo "Branch '$(name)' merged successfully."
 
 # Docker Targets
-.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install reset-all restart logs
+.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install reset-project restart logs
 build:
 	docker compose build
 	@echo "Docker images built."
@@ -248,11 +248,11 @@ install:
 	make wait-for-db
 	make update-backend
 
-reset-all:
+reset-project:
 	make down
-	docker volume rm greenitscan_mariadb_data || true
-	make up
-	make reset-backend
+	docker volume rm greenitscan_GreenITScan_mariadb_data || true
+	make install
+
 
 restart:
 	make down
