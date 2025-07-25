@@ -27,7 +27,7 @@ help:
 	@echo "  make update-backend                     Update the backend dependencies and database"
 	@echo "  make reset-backend                      Reset the backend database and schema"
 	@echo "  make install                            Build and start Docker containers, update backend"
-	@echo "  make reset-project                      Reset all Docker containers and backend"
+	@echo "  make rebuild-project                    Rebuild all Docker containers and backend"
 	@echo "  make restart                            Restart Docker containers"
 	@echo "  make logs                               Show Docker logs in real-time"
 
@@ -174,7 +174,7 @@ merge:
 	@echo "Branch '$(name)' merged successfully."
 
 # Docker Targets
-.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install reset-project restart logs
+.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install rebuild-project restart logs
 build:
 	docker compose build
 	@echo "Docker images built."
@@ -218,7 +218,7 @@ recreate-schema:
 	@echo "Database schema recreated."
 
 fixtures:
-	@docker exec -ti api_backend php bin/console hautelook:fixtures:load -vvv
+	@docker compose exec backend php bin/console hautelook:fixtures:load --no-interaction -vvv || echo "⚠️ Échec du chargement des fixtures, suite du script..."
 	@echo "Database fixtures loaded."
 
 logs:
@@ -247,10 +247,12 @@ install:
 	make up
 	make wait-for-db
 	make update-backend
+	make generate-tokens
+	make fixtures
 
-reset-project:
+rebuild-project:
 	make down
-	docker volume rm greenitscan_GreenITScan_mariadb_data || true
+	docker volume ls -q --filter name=_GreenITScan_mariadb_data | xargs -r docker volume rm
 	make install
 
 
@@ -258,3 +260,13 @@ restart:
 	make down
 	make build
 	make up
+
+generate-tokens:
+	docker compose exec backend sh -c '\
+	if [ ! -f config/jwt/private.pem ]; then \
+		echo "🔐 Génération des clés JWT..."; \
+		php bin/console lexik:jwt:generate-keypair; \
+	else \
+		echo "✅ Clés JWT déjà présentes, aucune action nécessaire."; \
+	fi'
+

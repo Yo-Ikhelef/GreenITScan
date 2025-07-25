@@ -18,3 +18,8 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    Fidry\AliceDataFixtures\Loader\PersisterLoader: '@fidry_alice_data_fixtures.doctrine.persister_loader'
+
+    App\DataFixtures\Providers\HashPasswordProvider:
+        tags: [ { name: nelmio_alice.faker.provider } ]
