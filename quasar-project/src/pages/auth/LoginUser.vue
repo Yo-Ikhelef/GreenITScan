@@ -1,11 +1,12 @@
 <template>
   <q-page class="flex flex-center">
-    <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-      <q-input v-model="email" label="Email" type="email" />
-      <q-input v-model="password" label="Password" type="password" />
-      <q-checkbox v-model="rememberMe" label="Remember Me" />
-      <div class="q-mt-lg q-mb-lg q-ml-xl" >
-        <q-btn type="submit" label="Login" color="primary" />
+    <q-form @submit.prevent="onSubmit" class="q-gutter-md my-form">
+      <div class="text-h5 text-center q-mb-md white-color">Connexion</div>
+      <q-input v-model="email" label="Email" type="email" class="input-style" />
+      <q-input v-model="password" label="Password" type="password" class="input-style" />
+      <q-checkbox v-model="rememberMe" label="Remember Me" class="white-color"/>
+      <div>
+        <q-btn type="submit" label="Login" color="primary" class="btn-style" />
       </div>
     </q-form>
   </q-page>
@@ -101,3 +102,11 @@ onMounted(() => {
   }
 })
 </script>
+
+<style>
+
+.white-color {
+  color: white;
+}
+
+</style>

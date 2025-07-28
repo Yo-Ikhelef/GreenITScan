@@ -16,9 +16,26 @@ const routes = [
       // },
       {
         path: 'login',
-        name: 'Login',
+        name: 'login',
         component: () => import('src/pages/auth/LoginUser.vue')
       },
+      {
+        path: 'register',
+        name: 'register',
+        component: () => import('src/pages/auth/RegisterUser.vue')
+      },
+      {
+        path: 'questionnaire',
+        name: 'questionnaire',
+        component: () => import('src/pages/QuestionnairePage.vue'),
+        // meta: { requiresAuth: true },
+      },
+      {
+        path: 'resultat',
+        name: 'resultat',
+        component: () => import('src/pages/ResultatPage.vue'),
+        // meta: { requiresAuth: true },
+      }
     ],
   },
   // Always leave this as last one,
