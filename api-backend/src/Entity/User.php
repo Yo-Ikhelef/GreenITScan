@@ -6,6 +6,8 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements PasswordAuthenticatedUserInterface, UserInterface
@@ -20,6 +22,14 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: Simulation::class, orphanRemoval: true)]
+    private Collection $simulations;
+
+    public function __construct()
+    {
+        $this->simulations = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -73,5 +83,9 @@ class User implements PasswordAuthenticatedUserInterface, UserInterface
         // Nettoyer les données sensibles si besoin
     }
 
+    public function getSimulations(): Collection
+    {
+        return $this->simulations;
+    }
 
 }
