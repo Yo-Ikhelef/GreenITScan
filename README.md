@@ -39,7 +39,7 @@ Cela va :
 
 ✅ Le projet sera accessible :
 
-- API Symfony : [http://localhost:8000](http://localhost:8000)
+- API Symfony : [http://localhost:8000/api/doc](http://localhost:8000/api/doc)
 - Frontend Quasar : [http://localhost:9000](http://localhost:9000)
 
 ---
