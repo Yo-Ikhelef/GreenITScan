@@ -20,10 +20,16 @@ help:
 	@echo "  make down                               Stop and remove Docker containers"
 	@echo "  make exec container=<container-name>    Execute bash in the specified container"
 	@echo "  make backend 						     Enter the backend container"
+	@echo "  make frontend                           Enter the frontend container"
 	@echo "  make database 						     Enter the database container"
 	@echo "  make recreate-schema                    Recreate the database schema"
 	@echo "  make fixtures                           Load database fixtures"
-	@echo "  make backend-preprod                    Enter the backend container for pre-production"
+	@echo "  make update-backend                     Update the backend dependencies and database"
+	@echo "  make reset-backend                      Reset the backend database and schema"
+	@echo "  make install                            Build and start Docker containers, update backend"
+	@echo "  make rebuild-project                    Rebuild all Docker containers and backend"
+	@echo "  make restart                            Restart Docker containers"
+	@echo "  make logs                               Show Docker logs in real-time"
 
 # Git Targets
 .PHONY: new-branch delete-branch list-branches list-branches-remote commit push pull status merge checkout
@@ -168,7 +174,7 @@ merge:
 	@echo "Branch '$(name)' merged successfully."
 
 # Docker Targets
-.PHONY: build up stop down exec backend database recreate-schema fixtures backend-preprod
+.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install rebuild-project restart logs
 build:
 	docker compose build
 	@echo "Docker images built."
@@ -197,9 +203,13 @@ backend:
 	@docker exec -ti api_backend bash
 	@echo "Entered backend container: api-backend."
 
+frontend:
+	@docker exec -ti quasar-frontend bash
+	@echo "Entered frontend container: quasar-frontend."
+
 database:
-	@docker exec -ti sqlserver_database bash
-	@echo "Entered database container: mariaDB."
+	@docker exec -ti mariadb_database bash
+	@echo "Entered database container: mariadb_database."
 
 recreate-schema:
 	@docker exec -ti api_backend php bin/console doctrine:schema:drop --force --full-database
@@ -208,10 +218,55 @@ recreate-schema:
 	@echo "Database schema recreated."
 
 fixtures:
-	@docker exec -ti api_backend php bin/console hautelook:fixtures:load -vvv
+	@docker compose exec backend php bin/console hautelook:fixtures:load --no-interaction -vvv || echo "⚠️ Échec du chargement des fixtures, suite du script..."
 	@echo "Database fixtures loaded."
 
-backend-preprod:
-	@docker exec -ti symfony_backend_preprod bash
-	@echo "Entered backend container: supply-management-backend-1."
+logs:
+	docker compose logs -f
+
+update-backend:
+	docker compose exec backend composer install
+	docker compose exec backend php bin/console doctrine:database:create --if-not-exists
+	docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
+
+reset-backend:
+	docker compose exec backend composer install
+	docker compose exec backend rm -rf var/cache
+	docker compose exec backend php bin/console doctrine:database:drop --force --if-exists
+	docker compose exec backend php bin/console doctrine:database:create
+	docker compose exec backend php bin/console doctrine:schema:update --force
+
+wait-for-db:
+	@until [ "$$(docker inspect --format='{{.State.Health.Status}}' mariadb_database)" = "healthy" ]; do \
+		echo "⏳ En attente que MariaDB soit prêt..."; \
+		sleep 2; \
+	done
+
+install:
+	make build
+	make up
+	make wait-for-db
+	make update-backend
+	make generate-tokens
+	make fixtures
+
+rebuild-project:
+	make down
+	docker volume ls -q --filter name=_GreenITScan_mariadb_data | xargs -r docker volume rm
+	make install
+
+
+restart:
+	make down
+	make build
+	make up
+
+generate-tokens:
+	docker compose exec backend sh -c '\
+	if [ ! -f config/jwt/private.pem ]; then \
+		echo "🔐 Génération des clés JWT..."; \
+		php bin/console lexik:jwt:generate-keypair; \
+	else \
+		echo "✅ Clés JWT déjà présentes, aucune action nécessaire."; \
+	fi'
 
