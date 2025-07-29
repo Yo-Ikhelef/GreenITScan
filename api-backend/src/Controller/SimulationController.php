@@ -56,37 +56,7 @@ class SimulationController extends AbstractController
             new OA\Response(response: 400, description: 'Invalid input')
         ]
     )]
-    #[Route('/simulation', name: 'simulation', methods: ['POST'])]
-    // public function simulate(Request $request, CarbonFootprintCalculator $calculator): JsonResponse
-    // {
-    //     $data = json_decode($request->getContent(), true);
-
-    //     if (!is_array($data)) {
-    //         return $this->json(['error' => 'Invalid JSON payload'], 400);
-    //     }
-
-    //     $simRequest = new SimulatorRequest(
-    //         emailSimple: (int) ($data['emailSimple'] ?? 0),
-    //         emailPJ: (int) ($data['emailPJ'] ?? 0),
-    //         webQueries: (int) ($data['webQueries'] ?? 0),
-    //         streamingVideo: (int) ($data['streamingVideo'] ?? 0),
-    //         streamingAudio: (int) ($data['streamingAudio'] ?? 0),
-    //         videoConf: (int) ($data['videoConf'] ?? 0),
-    //         pcCount: (int) ($data['pcCount'] ?? 0),
-    //         smartphoneCount: (int) ($data['smartphoneCount'] ?? 0),
-    //         consoleCount: (int) ($data['consoleCount'] ?? 0),
-    //         cloudCount: (int) ($data['cloudCount'] ?? 0),
-    //     );
-
-    //     $result = $calculator->calculate($simRequest);
-
-    //     return $this->json([
-    //         'totalKg' => round($result->getTotalKg(), 2),
-    //         'treeEquivalent' => $result->getTreeEquivalence(),
-    //         'carKmEquivalent' => $result->getCarKmEquivalence(),
-    //         'details' => $result->details,
-    //     ]);
-    // }
+    #[Route('/NEW', name: 'simulation_new', methods: ['POST'])]
     public function simulate(Request $request, CarbonFootprintCalculator $calculator, EntityManagerInterface $em, SimulationNormalizer $normalizer, UserInterface $user): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
