@@ -10,6 +10,7 @@ class SimulationNormalizer
     {
         return [
             'id' => $simulation->getId(),
+            'totalGCo2e' => (int) round($simulation->getTotalKg() * 1000),
             'totalKg' => round($simulation->getTotalKg(), 2),
             'treeEquivalent' => $simulation->getTreeEquivalent(),
             'carKmEquivalent' => $simulation->getCarKmEquivalent(),

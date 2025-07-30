@@ -37,7 +37,7 @@ class CarbonFootprintCalculator
             $emission = $normalizedValue * $factor['emission_gco2e'];
             $total += $emission;
 
-            $details[] = $this->buildDetail($factor, $usage['value'], $emission, $usage['type']);
+            $details[] = $this->buildDetail($factor, $usage['value'], $emission, $usage['type'], $usage['key']);
         }
 
         return new SimulatorResult($total, $details);
@@ -53,16 +53,34 @@ class CarbonFootprintCalculator
         };
     }
 
-    private function buildDetail(array $factor, float|int $userValue, float $emission, string $type): array
+    // private function buildDetail(array $factor, float|int $userValue, float $emission, string $type): array
+    // {
+    //     return [
+    //         'label' => $factor['label'],
+    //         'unit' => $factor['unit'],
+    //         'source' => $factor['source'],
+    //         'frequency' => $factor['frequency'],
+    //         'value' => $userValue,
+    //         'emission_gco2e' => round($emission, 2),
+    //         'type' => $type // "usage" ou "fabrication"
+    //     ];
+    // }
+
+    private function buildDetail(array $factor, float|int $userValue, float $emission, string $type, string $key): array
     {
         return [
+            'key' => $key,
             'label' => $factor['label'],
-            'unit' => $factor['unit'],
-            'source' => $factor['source'],
-            'frequency' => $factor['frequency'],
             'value' => $userValue,
-            'emission_gco2e' => round($emission, 2),
-            'type' => $type // "usage" ou "fabrication"
+            'total' => round($emission, 2), // gCO₂e
+            'factor' => [
+                'type' => $type,
+                'unit' => $factor['unit'],
+                'emission_gco2e' => $factor['emission_gco2e'],
+                'frequency' => $factor['frequency'],
+                'source' => $factor['source'],
+            ]
         ];
     }
+
 }

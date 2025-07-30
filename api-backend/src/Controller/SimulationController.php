@@ -56,7 +56,7 @@ class SimulationController extends AbstractController
             new OA\Response(response: 400, description: 'Invalid input')
         ]
     )]
-    #[Route('/NEW', name: 'simulation_new', methods: ['POST'])]
+    #[Route('/new', name: 'simulation_new', methods: ['POST'])]
     public function simulate(Request $request, CarbonFootprintCalculator $calculator, EntityManagerInterface $em, SimulationNormalizer $normalizer, UserInterface $user): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
@@ -83,6 +83,7 @@ class SimulationController extends AbstractController
         // Persist simulation
         $simulation = new Simulation();
         $simulation->setUser($user);
+        $simulation->setTotalGCo2e($result->getTotalGcoe2());
         $simulation->setTotalKg($result->getTotalKg());
         $simulation->setDetails($result->details);
 
