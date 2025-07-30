@@ -34,7 +34,7 @@ services:
       MYSQL_ROOT_PASSWORD: "YourPassword123"
       MYSQL_DATABASE: "GreenITScan"
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - GreenITScan_mariadb_data:/var/lib/mysql
     healthcheck:
