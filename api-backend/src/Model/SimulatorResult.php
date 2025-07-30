@@ -9,6 +9,11 @@ class SimulatorResult
         public readonly array $details // chaque item = label, valeur, unité, source, émission, fréquence
     ) {}
 
+    public function getTotalGcoe2(): float
+    {
+        return $this->totalGCo2e;
+    }
+
     public function getTotalKg(): float
     {
         return $this->totalGCo2e / 1000;

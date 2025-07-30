@@ -20,6 +20,10 @@ class Simulation
 
     #[ORM\Column(type: 'float')]
     #[Assert\PositiveOrZero]
+    private float $totalGCo2e = 0;
+
+    #[ORM\Column(type: 'float')]
+    #[Assert\PositiveOrZero]
     private float $totalKg;
 
     #[ORM\Column(type: 'json')]
@@ -48,6 +52,17 @@ class Simulation
     public function setUser(?User $user): static
     {
         $this->user = $user;
+        return $this;
+    }
+
+    public function getTotalGCo2e(): float
+    {
+        return $this->totalGCo2e;
+    }
+
+    public function setTotalGCo2e(float $totalGCo2e): static
+    {
+        $this->totalGCo2e = $totalGCo2e;
         return $this;
     }
 
