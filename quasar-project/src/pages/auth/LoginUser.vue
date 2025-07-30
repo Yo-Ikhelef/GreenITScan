@@ -1,10 +1,10 @@
 <template>
   <q-page class="flex flex-center">
     <q-form @submit.prevent="onSubmit" class="q-gutter-md my-form">
-      <div class="text-h5 text-center q-mb-md white-color">Connexion</div>
+      <h2 class="h2-style">Connexion</h2>
       <q-input v-model="email" label="Email" type="email" class="input-style" />
       <q-input v-model="password" label="Password" type="password" class="input-style" />
-      <q-checkbox v-model="rememberMe" label="Remember Me" class="white-color"/>
+      <q-checkbox v-model="rememberMe" label="Remember Me" class="white-style"/>
       <div v-if="errorMessage" class="text-negative text-center">
         {{ errorMessage }}
       </div>
@@ -18,7 +18,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginStore } from '../../stores/loginStore'
+import { useAuthStore } from '../../stores/authStore'
 // import { useNotificationsStore } from '../../stores/notificationsStore'
 // import { useQuasar } from 'quasar'
 // import { api } from 'boot/axios'
@@ -26,7 +26,7 @@ import { useLoginStore } from '../../stores/loginStore'
 const email = ref('')
 const password = ref('')
 const router = useRouter()
-const loginStore = useLoginStore()
+const authStore = useAuthStore()
 // const notificationsStore = useNotificationsStore()
 // const $q = useQuasar()
 const rememberMe = ref(true)
@@ -34,7 +34,7 @@ const errorMessage = ref('')
 
 const onSubmit = async () => {
   try {
-    await loginStore.login(email.value, password.value);
+    await authStore.login(email.value, password.value);
 
     // Store the rememberedEmail when the user is logged
     if (rememberMe.value) {
@@ -42,15 +42,9 @@ const onSubmit = async () => {
     } else {
       localStorage.removeItem('rememberedEmail')
     }
-
-    // Redirect to the dashboard based on the user's role (GUEST, USER, ADMIN)
-    // if (authStore.getRoles.includes('GUEST')) {
-    //   router.push('/dashboardGuest')
-    // } else {
-      router.push('/questionnaire')
-    // }
+    router.push('/questionnaire')
   } catch {
-    errorMessage.value = loginStore.error || 'Erreur de connexion. Vérifiez vos identifiants.'
+    errorMessage.value = authStore.error || 'Erreur de connexion. Vérifiez vos identifiants.'
 
   }
 }
@@ -65,9 +59,5 @@ onMounted(() => {
 </script>
 
 <style>
-
-.white-color {
-  color: white;
-}
 
 </style>

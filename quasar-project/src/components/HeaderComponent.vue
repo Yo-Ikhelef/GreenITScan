@@ -1,7 +1,7 @@
 <template>
   <q-header elevated class="custom-nav">
     <q-toolbar>
-      <q-toolbar-title>Green It Scan</q-toolbar-title>
+      <q-toolbar-title style="cursor:pointer" @click="goToQuestionnaire">Green It Scan</q-toolbar-title>
       <q-space />
       <template v-if="!isAuthenticated">
         <q-btn v-if="isLogin" label="Inscription" flat @click="goToRegister" aria-label="Inscription" />
@@ -15,13 +15,13 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { computed } from 'vue'
-import { useLoginStore } from '../stores/loginStore'
+import { useAuthStore } from '../stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
-const loginStore = useLoginStore()
+const authStore = useAuthStore()
 
-const isAuthenticated = computed(() => loginStore.isAuthenticated)
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isLogin = computed(() => route.name === 'login')
 const isRegister = computed(() => route.name === 'register')
 
@@ -33,8 +33,12 @@ function goToLogin() {
   router.push({ name: 'login' })
 }
 
+function goToQuestionnaire() {
+  router.push({ name: 'questionnaire' })
+}
+
 function logout() {
-  loginStore.logout()
+  authStore.logout()
   router.push({ name: 'login' })
 }
 </script>

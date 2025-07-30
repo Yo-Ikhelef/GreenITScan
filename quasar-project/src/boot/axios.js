@@ -1,7 +1,7 @@
 import { defineBoot } from '#q-app/wrappers'
 import axios from 'axios'
 // mf don't find the store without the .js at the end ?
-import { useLoginStore } from '../stores/loginStore.js'
+import { useAuthStore } from '../stores/authStore.js'
 import { watch } from 'vue';
 
 
@@ -16,13 +16,13 @@ const api = axios.create({ baseURL: 'http://localhost:8000/api' });
 
 
 export default defineBoot(({ app }) => {
-  const loginStore = useLoginStore();
+  const authStore = useAuthStore();
 
 // add an interceptor to include the token within the requests
 api.interceptors.request.use((config) => {
-  const loginStore = useLoginStore();
-  if (loginStore.token) {
-    config.headers.Authorization = `Bearer ${loginStore.token}`;
+  const authStore = useAuthStore();
+  if (authStore.token) {
+    config.headers.Authorization = `Bearer ${authStore.token}`;
   } else {
     console.warn("Token is not available for the interceptor.");
   }
@@ -30,7 +30,7 @@ api.interceptors.request.use((config) => {
 });
 
   // Update Axios when the token is renewed
-  watch(() => loginStore.token, (newToken) => {
+  watch(() => authStore.token, (newToken) => {
     api.defaults.headers.common['Authorization'] = newToken ? `Bearer ${newToken}` : '';
   });
 
