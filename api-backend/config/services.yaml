@@ -23,3 +23,7 @@ services:
 
     App\DataFixtures\Providers\HashPasswordProvider:
         tags: [ { name: nelmio_alice.faker.provider } ]
+
+    App\Service\Provider\CarbonFactorProvider:
+        arguments:
+            $jsonPath: '%kernel.project_dir%/config/carbon_factors.json'

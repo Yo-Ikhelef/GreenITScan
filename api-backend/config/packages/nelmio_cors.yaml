@@ -1,12 +1,10 @@
 nelmio_cors:
-  defaults:
-    allow_origin:
-      - 'http://localhost:9000'
-      - '^http://127\.0\.0\.1(:[0-9]+)?$'
-    allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'DELETE']
-    allow_headers: ['Content-Type', 'Authorization']
-    expose_headers: ['Link', 'Content-Disposition']
-    max_age: 3600
-    allow_credentials: true
-  paths:
-    '^/': ~
+    defaults:
+        allow_origin: ['^http://localhost:[0-9]+$', '^http://127\.0\.0\.1:[0-9]+$']
+        allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'DELETE']
+        allow_headers: ['Content-Type', 'Authorization']
+        expose_headers: ['Link', 'Content-Disposition']
+        max_age: 3600
+        allow_credentials: true
+    paths:
+        '^/': ~
