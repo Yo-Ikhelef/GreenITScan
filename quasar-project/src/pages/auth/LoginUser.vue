@@ -5,6 +5,9 @@
       <q-input v-model="email" label="Email" type="email" class="input-style" />
       <q-input v-model="password" label="Password" type="password" class="input-style" />
       <q-checkbox v-model="rememberMe" label="Remember Me" class="white-color"/>
+      <div v-if="errorMessage" class="text-negative text-center">
+        {{ errorMessage }}
+      </div>
       <div>
         <q-btn type="submit" label="Login" color="primary" class="btn-style" />
       </div>
@@ -15,38 +18,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/authStore'
+import { useLoginStore } from '../../stores/loginStore'
 // import { useNotificationsStore } from '../../stores/notificationsStore'
 // import { useQuasar } from 'quasar'
-import { api } from 'boot/axios'
+// import { api } from 'boot/axios'
 
 const email = ref('')
 const password = ref('')
 const router = useRouter()
-const authStore = useAuthStore()
+const loginStore = useLoginStore()
 // const notificationsStore = useNotificationsStore()
 // const $q = useQuasar()
 const rememberMe = ref(true)
+const errorMessage = ref('')
 
 const onSubmit = async () => {
   try {
-    const response = await api.post('http://localhost:8000/api/auth/login', {
-      email: email.value,
-      password: password.value,
-    })
-
-    // Sanctum does not provide an expiration date for the token. JWT does.
-    // response.data.expiration is set inside the auth controller
-    authStore.setToken(response.data.token, response.data.expiration)
-    // if the token is not expired, set the user and redirect to the dashboard
-    await authStore.fetchUserWithInfo(response.data.userWithInfo)
-    // // Show positive notification
-    // notificationsStore.createNotification({
-    //   message: 'Login successful! Welcome back.',
-    //   type: 'positive',
-    //   position: 'top-right',
-    //   $q,
-    // })
+    await loginStore.login(email.value, password.value);
 
     // Store the rememberedEmail when the user is logged
     if (rememberMe.value) {
@@ -59,38 +47,11 @@ const onSubmit = async () => {
     // if (authStore.getRoles.includes('GUEST')) {
     //   router.push('/dashboardGuest')
     // } else {
-      router.push('/dashboard')
+      router.push('/questionnaire')
     // }
-  } catch (error) {
-    if (error.response) {
-      const statusCode = error.response.status
+  } catch {
+    errorMessage.value = loginStore.error || 'Erreur de connexion. Vérifiez vos identifiants.'
 
-      if (statusCode === 403) {
-        // Deactivated User
-      //   notificationsStore.createNotification({
-      //     message: 'Your account is deactivated. Please contact your favorite Admin.',
-      //     type: 'error',
-      //     position: 'top-right',
-      //     $q,
-      //   })
-      // } else if (statusCode === 401) {
-      //   // Credentials error
-      //   notificationsStore.createNotification({
-      //     message: 'Connection failed. Please check your credentials and try again.',
-      //     type: 'error',
-      //     position: 'top-right',
-      //     $q,
-      //   })
-      }
-    } else {
-      // No response -> network issue
-      // notificationsStore.createNotification({
-      //   message: 'Network error. Please check your internet connection.',
-      //   type: 'error',
-      //   position: 'top-right',
-      //   $q,
-      // })
-    }
   }
 }
 
