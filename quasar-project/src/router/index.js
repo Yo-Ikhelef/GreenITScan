@@ -6,6 +6,7 @@ import {
   createWebHashHistory,
 } from 'vue-router'
 import routes from './routes.js'
+import { useAuthStore } from 'src/stores/authStore'
 
 /*
  * If not building with SSR mode, you can
@@ -32,6 +33,19 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
   })
+
+  // Guard global pour empêcher l'accès à login/register si connecté et autres pages si pas connecté
+  Router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+  const publicPages = ['login', 'register']
+  if (!authStore.isAuthenticated && !publicPages.includes(to.name)) {
+    next({ name: 'login' })
+  } else if (authStore.isAuthenticated && publicPages.includes(to.name)) {
+    next({ name: 'questionnaire' })
+  } else {
+    next()
+  }
+})
 
   return Router
 })
