@@ -27,16 +27,16 @@ class SimulationController extends AbstractController
                 'application/json' => new OA\JsonContent(
                     type: 'object',
                     properties: [
-                        new OA\Property(property: 'emailSimple', type: 'integer', example: 2, description: "Nombre d'emails sans pièce jointe envoyés par jour"),
-                        new OA\Property(property: 'emailPJ', type: 'integer', example: 1, description: "Nombre d'emails avec pièce jointe (1Mo) envoyés par jour"),
-                        new OA\Property(property: 'webQueries', type: 'integer', example: 20, description: "Nombre de requêtes web par jour"),
-                        new OA\Property(property: 'streamingVideo', type: 'integer', example: 5, description: "Nombre d'heures de vidéo HD streamées par semaine"),
-                        new OA\Property(property: 'streamingAudio', type: 'integer', example: 60, description: "Nombre de minutes d'audio streamé par jour"),
+                        new OA\Property(property: 'emailSimple', type: 'integer', example: 2, description: "Nombre d'emails envoyés sans pièce jointe par jour"),
+                        new OA\Property(property: 'emailPJ', type: 'integer', example: 1, description: "Nombre d'emails envoyés avec pièce jointe (1Mo) par jour"),
+                        new OA\Property(property: 'webHours', type: 'integer', example: 2, description: "Nombre d’heures passées à naviguer sur Internet par jour"),
+                        new OA\Property(property: 'streamingVideo', type: 'integer', example: 5, description: "Nombre d'heures de streaming vidéo HD par semaine"),
+                        new OA\Property(property: 'streamingAudio', type: 'integer', example: 60, description: "Nombre de minutes de musique en streaming par jour"),
                         new OA\Property(property: 'videoConf', type: 'integer', example: 3, description: "Nombre d'heures de visioconférences HD par semaine"),
-                        new OA\Property(property: 'pcCount', type: 'integer', example: 1, description: "Nombre d’ordinateurs possédés (fabrication)"),
-                        new OA\Property(property: 'smartphoneCount', type: 'integer', example: 1, description: "Nombre de smartphones possédés (fabrication)"),
-                        new OA\Property(property: 'consoleCount', type: 'integer', example: 0, description: "Nombre de consoles de jeu possédées (fabrication)"),
-                        new OA\Property(property: 'cloudCount', type: 'integer', example: 50, description: "Volume de données stockées en Go/an dans un cloud professionnel")
+                        new OA\Property(property: 'pcCount', type: 'integer', example: 1, description: "Nombre d’ordinateurs portables utilisés cette année"),
+                        new OA\Property(property: 'smartphoneCount', type: 'integer', example: 1, description: "Nombre de smartphones utilisés cette année"),
+                        new OA\Property(property: 'consoleCount', type: 'integer', example: 0, description: "Nombre de consoles de jeu utilisées cette année"),
+                        new OA\Property(property: 'cloudAccounts', type: 'integer', example: 5, description: "Nombre de comptes de services cloud professionnels ou d'hébergement utilisés (ex. : Dropbox, Drive, OVH…)"),
                     ]
                 )
             ]
@@ -114,14 +114,14 @@ class SimulationController extends AbstractController
         $simRequest = new SimulatorRequest(
             emailSimple: (int) ($data['emailSimple'] ?? 0),
             emailPJ: (int) ($data['emailPJ'] ?? 0),
-            webQueries: (int) ($data['webQueries'] ?? 0),
+            webHours: (int) ($data['webHours'] ?? 0),
             streamingVideo: (int) ($data['streamingVideo'] ?? 0),
             streamingAudio: (int) ($data['streamingAudio'] ?? 0),
             videoConf: (int) ($data['videoConf'] ?? 0),
             pcCount: (int) ($data['pcCount'] ?? 0),
             smartphoneCount: (int) ($data['smartphoneCount'] ?? 0),
             consoleCount: (int) ($data['consoleCount'] ?? 0),
-            cloudCount: (int) ($data['cloudCount'] ?? 0),
+            cloudAccounts: (int) ($data['cloudAccounts'] ?? 0),
         );
 
         $result = $calculator->calculate($simRequest);
