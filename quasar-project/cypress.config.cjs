@@ -36,8 +36,10 @@ module.exports = defineConfig({
     supportFile: "cypress/support/e2e.js",
     downloadsFolder: "cypress/downloads", // Dossier pour les téléchargements
     // Activer les captures d'écran et vidéos pour le débogage
-    screenshotOnRunFailure: false,
-    video: false,
+    // screenshotOnRunFailure: false,
+    // video: false,
+    screenshotOnRunFailure: true,
+    video: true,
     // Augmenter les délais d'attente pour la CI
     defaultCommandTimeout: 10000, // 10 secondes
     requestTimeout: 15000, // 15 secondes
