@@ -3,10 +3,10 @@ name: GreenItScan CI Pipeline
 on:
   push:
     branches:
-      - merge-test
+      - cicd
   pull_request:
     branches:
-      - merge-test
+      - cicd
 
 jobs:
   cypress-e2e:
@@ -25,6 +25,8 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
+        volumes:
+          - GreenITScan_mariadb_data:/var/lib/mysql
 
     steps:
       - name: Checkout code
@@ -46,8 +48,18 @@ jobs:
       - name: Start Docker services
         run: |
           docker-compose -f docker-compose.yml up -d
+          # Wait for services to be healthy
           npx wait-on http://localhost:9000 --timeout 120000
-          npx wait-on http://localhost:8000/api/users/login --timeout 120000 || echo "Backend may be mocked"
+          npx wait-on http://localhost:8000/api/doc --timeout 120000
+          # Additional wait for database readiness
+          npx wait-on tcp:localhost:3307 --timeout 60000
+
+      - name: Initialize backend (migrations and JWT keys)
+        run: |
+          docker-compose exec -T backend composer install
+          docker-compose exec -T backend php bin/console doctrine:database:create --if-not-exists
+          docker-compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction
+          docker-compose exec -T backend php bin/console lexik:jwt:generate-keypair --skip-if-exists
 
       - name: Debug Docker logs
         if: failure()
@@ -62,9 +74,10 @@ jobs:
         with:
           browser: chrome
           spec: |
-            quasar-project/cypress/e2e/connexion_spec.cy.js
-            quasar-project/cypress/e2e/questionnaire_spec.cy.js
-            quasar-project/cypress/e2e/inscription_spec.cy.js
+            quasar-project/cypress/e2e/first.cy.js
+            quasar-project/cypress/e2e/login_spec.cy.js
+            quasar-project/cypress/e2e/questionnaire_page_spec.cy.js
+            quasar-project/cypress/e2e/register_user_spec.cy.js
             quasar-project/cypress/e2e/resultats_page_spec.cy.js
           working-directory: ./quasar-project
           record: false
@@ -120,6 +133,6 @@ jobs:
         with:
           name: cypress-component-artifacts
           path: |
-            quasar-project/cypress/screenshots
-            quasar-project/cypress/videos
+            quasar-project/cypress/downloads
+            quasar-project/cypress/downloads
           retention-days: 7
