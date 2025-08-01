@@ -1,0 +1,12 @@
+{
+  "emailSimple": "emailSimple test",
+  "emailPJ": "emailPJ test",
+  "webQueries": "webQueries test",
+  "streamingVideo": "streamingVideo test",
+  "streamingAudio": "streamingAudio test",
+  "videoConf": "videoConf test",
+  "pcCount": "pcCount test",
+  "smartphoneCount": "smartphoneCount test",
+  "consoleCount": "consoleCount test",
+  "cloudCount": "cloudCount test"
+}

@@ -1,0 +1,125 @@
+name: GreenItScan CI Pipeline
+
+on:
+  push:
+    branches:
+      - merge-test
+  pull_request:
+    branches:
+      - merge-test
+
+jobs:
+  cypress-e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      database:
+        image: mariadb:11.8.2
+        env:
+          MYSQL_ROOT_PASSWORD: "YourPassword123"
+          MYSQL_DATABASE: "GreenITScan"
+        ports:
+          - "3307:3306"
+        options: >-
+          --health-cmd="bash -c '</dev/tcp/127.0.0.1/3306'"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+          cache: 'npm'
+          cache-dependency-path: quasar-project/package-lock.json
+
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: Start Docker services
+        run: |
+          docker-compose -f docker-compose.yml up -d
+          npx wait-on http://localhost:9000 --timeout 120000
+          npx wait-on http://localhost:8000/api/users/login --timeout 120000 || echo "Backend may be mocked"
+
+      - name: Debug Docker logs
+        if: failure()
+        run: docker-compose -f docker-compose.yml logs
+
+      - name: Install quasar-project dependencies
+        run: npm ci
+        working-directory: ./quasar-project
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          spec: |
+            quasar-project/cypress/e2e/connexion_spec.cy.js
+            quasar-project/cypress/e2e/questionnaire_spec.cy.js
+            quasar-project/cypress/e2e/inscription_spec.cy.js
+            quasar-project/cypress/e2e/resultats_page_spec.cy.js
+          working-directory: ./quasar-project
+          record: false
+        env:
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+          CYPRESS_API_URL: http://localhost:8000
+
+      - name: Upload Cypress E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-e2e-artifacts
+          path: |
+            quasar-project/cypress/screenshots
+            quasar-project/cypress/videos
+          retention-days: 7
+
+      - name: Stop Docker services
+        if: always()
+        run: docker-compose -f docker-compose.yml down
+
+  cypress-component:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+          cache: 'npm'
+          cache-dependency-path: quasar-project/package-lock.json
+
+      - name: Install quasar-project dependencies
+        run: npm ci
+        working-directory: ./quasar-project
+
+      - name: Run Cypress component tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          component: true
+          spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+          working-directory: ./quasar-project
+        env:
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+
+      - name: Upload Cypress component artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-component-artifacts
+          path: |
+            quasar-project/cypress/screenshots
+            quasar-project/cypress/videos
+          retention-days: 7
