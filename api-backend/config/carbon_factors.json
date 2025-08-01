@@ -2,7 +2,7 @@
   "email": {
     "usage": {
       "label": "Email envoyé",
-      "unit": "email",
+      "unit": "mail",
       "emission_gco2e": 0.3,
       "frequency": "daily",
       "source": "ImpactCO2.fr / CarbonLiteracy.com"
@@ -11,7 +11,7 @@
   "email_pj": {
     "usage": {
       "label": "Email avec pièce jointe (1Mo)",
-      "unit": "email",
+      "unit": "mail",
       "emission_gco2e": 17.0,
       "frequency": "daily",
       "source": "Sami.eco / ImpactCO2.fr"
@@ -20,7 +20,7 @@
   "navigation_web": {
     "usage": {
       "label": "Requête web",
-      "unit": "requête",
+      "unit": "request",
       "emission_gco2e": 0.2,
       "frequency": "daily",
       "source": "Phys.org / ImpactCO2.fr"
@@ -29,7 +29,7 @@
   "streaming_video": {
     "usage": {
       "label": "Streaming vidéo (HD)",
-      "unit": "heure",
+      "unit": "hour",
       "emission_gco2e": 36.0,
       "frequency": "weekly",
       "source": "IEA.org / The Shift Project"
@@ -47,7 +47,7 @@
   "visioconference": {
     "usage": {
       "label": "Visioconférence (HD)",
-      "unit": "heure",
+      "unit": "hour",
       "emission_gco2e": 50.0,
       "frequency": "weekly",
       "source": "Estimation basée sur ImpactCO2.fr"
@@ -56,7 +56,7 @@
   "pc": {
     "fabrication": {
       "label": "Ordinateur portable (fabrication)",
-      "unit": "appareil",
+      "unit": "device",
       "emission_gco2e": 202000,
       "frequency": "yearly",
       "source": "Base Carbone v23.6"
@@ -65,7 +65,7 @@
   "smartphone": {
     "fabrication": {
       "label": "Smartphone (fabrication)",
-      "unit": "appareil",
+      "unit": "device",
       "emission_gco2e": 30000,
       "frequency": "yearly",
       "source": "Base Carbone v23.6"
@@ -74,7 +74,7 @@
   "console": {
     "fabrication": {
       "label": "Console de jeu (fabrication)",
-      "unit": "appareil",
+      "unit": "device",
       "emission_gco2e": 73700,
       "frequency": "yearly",
       "source": "Base Carbone v23.6"
@@ -83,7 +83,7 @@
   "cloud_service": {
     "usage": {
       "label": "Service cloud professionnel ou d'hébergement (stockage)",
-      "unit": "Go.an",
+      "unit": "GB.year",
       "emission_gco2e": 10,
       "frequency": "yearly",
       "source": "Greenly.fr + National Archives UK"
