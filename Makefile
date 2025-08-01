@@ -174,7 +174,7 @@ merge:
 	@echo "Branch '$(name)' merged successfully."
 
 # Docker Targets
-.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install rebuild-project restart logs
+.PHONY: build up stop down exec backend frontend database recreate-schema fixtures update-backend reset-backend install rebuild-project restart logs test
 build:
 	docker compose build
 	@echo "Docker images built."
@@ -270,3 +270,12 @@ generate-tokens:
 		echo "✅ Clés JWT déjà présentes, aucune action nécessaire."; \
 	fi'
 
+test:
+	docker compose exec backend bash -c '\
+		export APP_ENV=test && \
+		php bin/console doctrine:database:drop --force --if-exists --no-interaction && \
+		php bin/console doctrine:database:create --no-interaction && \
+		php bin/console doctrine:migrations:migrate --no-interaction && \
+		php bin/console hautelook:fixtures:load --no-interaction && \
+		php bin/phpunit \
+	'
