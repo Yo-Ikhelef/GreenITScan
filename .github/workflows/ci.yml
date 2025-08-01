@@ -3,10 +3,10 @@ name: GreenItScan CI Pipeline
 on:
   push:
     branches:
-      - main
+      - merge-test
   pull_request:
     branches:
-      - main
+      - merge-test
 
 jobs:
   cypress-e2e:
@@ -46,39 +46,26 @@ jobs:
       - name: Start Docker services
         run: |
           docker-compose -f docker-compose.yml up -d
-          npx wait-on http://localhost:9000 --timeout 120000 || echo "Frontend timeout, continuing with mocks"
-          npx wait-on http://localhost:8000/api/users/login --timeout 120000 || echo "Backend timeout, relying on mocks"
+          npx wait-on http://localhost:9000 --timeout 120000
+          npx wait-on http://localhost:8000/api/users/login --timeout 120000 || echo "Backend may be mocked"
 
       - name: Debug Docker logs
-        if: always()
+        if: failure()
         run: docker-compose -f docker-compose.yml logs
 
       - name: Install quasar-project dependencies
         run: npm ci
         working-directory: ./quasar-project
 
-      - name: Debug directory structure
-        run: ls -R quasar-project/cypress
-        working-directory: ./
-
-      - name: Debug API connectivity
-        run: |
-          curl -X POST http://localhost:8000/api/users/login -H "Content-Type: application/json" -d '{"email":"user@example.com","password":"azerty"}' || echo "Login API not reachable"
-          curl -X POST http://localhost:8000/api/auth/logout -H "Content-Type: application/json" -d '{"token":"mock-token"}' || echo "Logout API not reachable"
-          curl -X POST http://localhost:8000/api/users/register -H "Content-Type: application/json" -d '{"email":"user@example.com","password":"azerty","passwordConfirm":"azerty"}' || echo "Register API not reachable"
-          curl -X GET http://localhost:8000/api/results || echo "Results API not reachable"
-
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
           browser: chrome
           spec: |
-            quasar-project/cypress/e2e/first_spec.cy.js
-            quasar-project/cypress/e2e/login_spec.cy.js
-            quasar-project/cypress/e2e/questionnaire_page_spec.cy.js
-            quasar-project/cypress/e2e/register_user_spec.cy.js
+            quasar-project/cypress/e2e/connexion_spec.cy.js
+            quasar-project/cypress/e2e/questionnaire_spec.cy.js
+            quasar-project/cypress/e2e/inscription_spec.cy.js
             quasar-project/cypress/e2e/resultats_page_spec.cy.js
-            quasar-project/cypress/e2e/card_result_spec.cy.js
           working-directory: ./quasar-project
           record: false
         env:
@@ -98,3 +85,41 @@ jobs:
       - name: Stop Docker services
         if: always()
         run: docker-compose -f docker-compose.yml down
+
+  cypress-component:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+          cache: 'npm'
+          cache-dependency-path: quasar-project/package-lock.json
+
+      - name: Install quasar-project dependencies
+        run: npm ci
+        working-directory: ./quasar-project
+
+      - name: Run Cypress component tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          component: true
+          spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+          working-directory: ./quasar-project
+        env:
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+
+      - name: Upload Cypress component artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-component-artifacts
+          path: |
+            quasar-project/cypress/screenshots
+            quasar-project/cypress/videos
+          retention-days: 7
