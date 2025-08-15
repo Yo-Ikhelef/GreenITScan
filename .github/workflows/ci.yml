@@ -53,22 +53,25 @@ jobs:
 
       - name: Build quasar-frontend image
         run: |
-          docker build -t my-frontend-image ./quasar-project
+          if [ -f ./quasar-project/Dockerfile ]; then
+            docker build -t my-frontend-image ./quasar-project
+          else
+            echo "No Dockerfile found in ./quasar-project, assuming pre-built image."
+          fi
         working-directory: ./quasar-project
-        if: "!fileExists('./quasar-project/Dockerfile')" # Conditionnel si Dockerfile existe
 
       - name: Debug Docker services
         run: |
           docker ps -a
-          docker-compose -f docker-compose.yml logs
+          docker-compose -f docker-compose.yml logs quasar-frontend
 
       - name: Start Docker services
         run: |
           docker-compose -f docker-compose.yml up -d
           # Wait for services to be healthy
-          npx wait-on http://quasar-frontend:9000 --timeout 180000
-          npx wait-on http://backend:8000/api/doc --timeout 120000
-          npx wait-on tcp:database:3306 --timeout 60000
+          npx wait-on http://localhost:9000 --timeout 180000
+          npx wait-on http://localhost:8000/api/doc --timeout 120000
+          npx wait-on tcp:localhost:3308 --timeout 60000
 
       - name: Initialize backend (migrations and JWT keys)
         run: |
@@ -98,8 +101,8 @@ jobs:
           working-directory: ./quasar-project
           record: false
         env:
-          CYPRESS_FRONTEND_URL: http://quasar-frontend:9000
-          CYPRESS_API_URL: http://backend:8000
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+          CYPRESS_API_URL: http://localhost:8000
 
       - name: Upload Cypress E2E artifacts
         if: always()
@@ -141,7 +144,7 @@ jobs:
           spec: quasar-project/cypress/e2e/card_result_spec.cy.js
           working-directory: ./quasar-project
         env:
-          CYPRESS_FRONTEND_URL: http://quasar-frontend:9000
+          CYPRESS_FRONTEND_URL: http://localhost:9000
 
       - name: Upload Cypress component artifacts
         if: always()
