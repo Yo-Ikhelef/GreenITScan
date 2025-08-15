@@ -19,7 +19,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: "YourPassword123"
           MYSQL_DATABASE: "GreenITScan"
         ports:
-          - "3307:3306"
+          - "3308:3306" # Changé de 3307 à 3308 pour éviter le conflit de port
         options: >-
           --health-cmd="bash -c '</dev/tcp/127.0.0.1/3306'"
           --health-interval=5s
@@ -31,6 +31,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Clean up Docker containers
+        run: |
+          docker-compose -f docker-compose.yml down -v --remove-orphans || true
+          docker system prune -f --volumes || true
+        continue-on-error: true # Continue même si la commande échoue
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,8 +57,7 @@ jobs:
           # Wait for services to be healthy
           npx wait-on http://localhost:9000 --timeout 120000
           npx wait-on http://localhost:8000/api/doc --timeout 120000
-          # Additional wait for database readiness
-          npx wait-on tcp:localhost:3307 --timeout 60000
+          npx wait-on tcp:localhost:3308 --timeout 60000 # Mise à jour du port à 3308
 
       - name: Initialize backend (migrations and JWT keys)
         run: |
@@ -97,7 +102,7 @@ jobs:
 
       - name: Stop Docker services
         if: always()
-        run: docker-compose -f docker-compose.yml down
+        run: docker-compose -f docker-compose.yml down -v --remove-orphans
 
   cypress-component:
     runs-on: ubuntu-latest
@@ -133,6 +138,5 @@ jobs:
         with:
           name: cypress-component-artifacts
           path: |
-            quasar-project/cypress/downloads
             quasar-project/cypress/downloads
           retention-days: 7
