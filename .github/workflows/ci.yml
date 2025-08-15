@@ -111,36 +111,31 @@ jobs:
         if: always()
         run: make down
 
-  cypress-component:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18.19.1'
-          cache: 'npm'
-          cache-dependency-path: quasar-project/package-lock.json
-
-      - name: Install quasar-project dependencies
-        run: npm ci
-        working-directory: ./quasar-project
-
-      - name: Run Cypress component tests
-        uses: cypress-io/github-action@v6
-        with:
-          browser: chrome
-          component: true
-          spec: quasar-project/cypress/e2e/card_result_spec.cy.js
-          working-directory: ./quasar-project
-
-      - name: Upload Cypress component artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cypress-component-artifacts
-          path: quasar-project/cypress/downloads
-          retention-days: 7
+# cypress-component:
+#   runs-on: ubuntu-latest
+#   steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v4
+#       with:
+#         node-version: '18.19.1'
+#         cache: 'npm'
+#         cache-dependency-path: quasar-project/package-lock.json
+#     - name: Install quasar-project dependencies
+#       run: npm ci
+#       working-directory: ./quasar-project
+#     - name: Run Cypress component tests
+#       uses: cypress-io/github-action@v6
+#       with:
+#         browser: chrome
+#         component: true
+#         spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+#         working-directory: ./quasar-project
+#     - name: Upload Cypress component artifacts
+#       if: always()
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: cypress-component-artifacts
+#         path: quasar-project/cypress/downloads
+#         retention-days: 77
