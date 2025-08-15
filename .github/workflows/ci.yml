@@ -60,11 +60,11 @@ jobs:
           make install
         continue-on-error: true
 
-      - name: Install node_modules in frontend container
-        run: |
-          docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
-          docker exec quasar-frontend npm ci
-        # Vérifie que le conteneur quasar-frontend existe, puis installe node_modules dans /app/node_modules
+       # - name: Install node_modules in frontend container
+       #   run: |
+       #     docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
+       #     docker exec quasar-frontend npm ci
+       #   # Vérifie que le conteneur quasar-frontend existe, puis installe node_modules dans /app/node_modules
 
       - name: Debug Docker services after start
         run: |
