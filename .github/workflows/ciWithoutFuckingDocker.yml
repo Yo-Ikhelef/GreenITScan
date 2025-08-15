@@ -1,0 +1,112 @@
+name: GreenItScan CI Pipeline (No Docker)
+on:
+  push:
+    branches: [cicd]
+  pull_request:
+    branches: [cicd]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install MariaDB
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-server
+          sudo systemctl start mariadb
+          mysql -e "CREATE DATABASE IF NOT EXISTS GreenITScan;"
+          mysql -e "CREATE USER 'root'@'localhost' IDENTIFIED BY 'YourPassword123';"
+          mysql -e "GRANT ALL PRIVILEGES ON GreenITScan.* TO 'root'@'localhost';"
+          mysql -e "FLUSH PRIVILEGES;"
+
+      - name: Install PHP 8.3.6 and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            unzip \
+            libicu-dev \
+            libpq-dev \
+            libzip-dev \
+            libxml2-dev \
+            zip \
+            curl \
+            libonig-dev \
+            libssl-dev \
+            gnupg2 \
+            software-properties-common \
+            libfreetype6-dev \
+            libjpeg-dev \
+            libpng-dev \
+            libmariadb-dev
+          sudo add-apt-repository ppa:ondrej/php -y
+          sudo apt-get update
+          sudo apt-get install -y php8.3-cli php8.3-common php8.3-intl php8.3-mbstring php8.3-xml php8.3-zip php8.3-mysql php8.3-bcmath php8.3-gd
+          php -v
+
+      - name: Install Composer and PHP dependencies
+        run: |
+          curl -sS https://getcomposer.org/installer | php
+          sudo mv composer.phar /usr/local/bin/composer
+          composer --version
+          cd api-backend
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+
+      - name: Start PHP backend server
+        run: |
+          cd api-backend
+          php -S 0.0.0.0:8000 -t public public/index.php &
+        env:
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_USER: root
+          DB_PASSWORD: YourPassword123
+          DB_NAME: GreenITScan
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+          cache: 'npm'
+          cache-dependency-path: quasar-project/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./quasar-project
+
+      - name: Start frontend server
+        run: npm run dev &
+        working-directory: ./quasar-project
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:9000 --timeout 30000
+          npx wait-on http://localhost:8000/api/doc --timeout 30000
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          spec: |
+            quasar-project/cypress/e2e/first.cy.js
+            quasar-project/cypress/e2e/login_spec.cy.js
+            quasar-project/cypress/e2e/questionnaire_page_spec.cy.js
+            quasar-project/cypress/e2e/register_user_spec.cy.js
+            quasar-project/cypress/e2e/resultats_page_spec.cy.js
+          working-directory: ./quasar-project
+        env:
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+          CYPRESS_API_URL: http://localhost:8000
+
+      - name: Upload Cypress artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            quasar-project/cypress/screenshots
+            quasar-project/cypress/videos
+          retention-days: 7
