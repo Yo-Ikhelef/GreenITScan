@@ -1,4 +1,4 @@
-name: GreenItScan CI Pipeline (Fixed)
+name: GreenItScan CI Pipeline (Fixed for Real)
 on:
   push:
     branches: [cicd]
@@ -25,7 +25,7 @@ jobs:
       - name: Start backend server
         run: |
           cd api-backend
-          php -S 0.0.0.0:8000 -t public public/index.php > /dev/null 2>&1 &
+          php -S 0.0.0.0:8000 -t public public/index.php > php-server.log 2>&1 &
         env:
           APP_ENV: test
 
@@ -47,16 +47,30 @@ jobs:
       - name: Start frontend server
         run: |
           cd quasar-project
-          npx quasar dev > /dev/null 2>&1 &
-          sleep 10  # Attendre que le serveur démarre
+          npx quasar dev > quasar.log 2>&1 &
+          sleep 5  # Temps minimal pour le démarrage
 
-      - name: Check if frontend is running
-        run: curl -v http://localhost:9000 || echo "Frontend not ready yet"
-
-      - name: Wait for services
+      - name: Verify frontend is ready
         run: |
-          npx wait-on http://localhost:9000 --timeout 30000
-          npx wait-on http://localhost:8000/api/doc --timeout 30000
+          # Vérifier que la réponse contient bien le titre de l'app Quasar
+          MAX_ATTEMPTS=10
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            RESPONSE=$(curl -s http://localhost:9000)
+            if [[ "$RESPONSE" == *"<title>Quasar App</title>"* ]]; then
+              echo "Frontend is ready!"
+              exit 0
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 2
+          done
+          echo "Frontend did not start correctly."
+          cat quasar-project/quasar.log
+          exit 1
+
+      - name: Verify backend is ready
+        run: |
+          curl -v http://localhost:8000/api/doc || echo "Backend not ready"
 
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
@@ -79,3 +93,11 @@ jobs:
             quasar-project/cypress/screenshots
             quasar-project/cypress/videos
           retention-days: 7
+
+      - name: Debug logs on failure
+        if: failure()
+        run: |
+          echo "=== PHP Server Logs ==="
+          cat api-backend/php-server.log
+          echo "=== Quasar Logs ==="
+          cat quasar-project/quasar.log
