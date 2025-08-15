@@ -19,7 +19,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: "YourPassword123"
           MYSQL_DATABASE: "GreenITScan"
         ports:
-          - "3307:3306" # Aligné avec docker-compose.yml
+          - "3308:3306"
         options: >-
           --health-cmd="bash -c '</dev/tcp/127.0.0.1/3306'"
           --health-interval=5s
