@@ -16,66 +16,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clean up Docker containers
-        run: |
-          docker-compose -f docker-compose.yml down -v --remove-orphans || true
-          docker system prune -f --volumes || true
-        continue-on-error: true
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18.19.1'
-          cache: 'npm'
-          cache-dependency-path: quasar-project/package-lock.json
 
-      - name: Install Make and Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y make
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+      - name: Install Make
+        run: sudo apt-get update && sudo apt-get install -y make
 
-      - name: Fix NPM vulnerabilities
-        run: |
-          npm audit fix
-          npm install
-        working-directory: ./quasar-project
-        continue-on-error: true
+      - name: Clean up Docker containers
+        run: docker-compose -f docker-compose.yml down -v --remove-orphans
 
       - name: Build Docker images
-        run: |
-          make build
-        continue-on-error: true
+        run: make build || { docker-compose -f docker-compose.yml logs; exit 1; }
 
-      - name: Debug Docker services before start
-        run: |
-          docker ps -a
-          docker-compose -f docker-compose.yml config
-          docker-compose -f docker-compose.yml logs
+      - name: Start Docker services
+        run: docker-compose -f docker-compose.yml up -d --wait
+        timeout-minutes: 10
 
-      - name: Start Docker services and initialize
-        run: |
-          make install
-        continue-on-error: true
-
-      - name: Debug Docker services after start
+      - name: Debug Docker services
         run: |
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
-          docker-compose -f docker-compose.yml logs backend
-
-      - name: Wait for services to be healthy
-        run: |
-          npx wait-on http://localhost:9000 --timeout 300000
-          npx wait-on http://localhost:8000/api/doc --timeout 120000
-          npx wait-on tcp:localhost:3307 --timeout 60000
-        continue-on-error: true
-
-      - name: Install quasar-project dependencies
-        run: npm ci
-        working-directory: ./quasar-project
+          curl http://localhost:9000 || echo "Frontend not available"
 
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
@@ -109,7 +72,7 @@ jobs:
 
       - name: Stop Docker services
         if: always()
-        run: make down
+        run: docker-compose -f docker-compose.yml down -v
 
 # cypress-component:
 #   runs-on: ubuntu-latest
