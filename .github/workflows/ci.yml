@@ -49,10 +49,6 @@ jobs:
           make build
         continue-on-error: true
 
-      - name: Install node_modules in frontend container
-        run: docker exec greenitscan-frontend npm ci
-        # Exécute npm ci dans le conteneur quasar-frontend pour installer node_modules dans /app/node_modules
-
       - name: Debug Docker services before start
         run: |
           docker ps -a
@@ -64,11 +60,18 @@ jobs:
           make install
         continue-on-error: true
 
+      - name: Install node_modules in frontend container
+        run: |
+          docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
+          docker exec quasar-frontend npm ci
+        # Vérifie que le conteneur quasar-frontend existe, puis installe node_modules dans /app/node_modules
+
       - name: Debug Docker services after start
         run: |
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
           docker-compose -f docker-compose.yml logs backend
+          docker exec quasar-frontend ls -la /app/node_modules | head -n 20
 
       - name: Wait for services to be healthy
         run: |
