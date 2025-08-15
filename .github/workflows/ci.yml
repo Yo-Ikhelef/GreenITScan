@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: Install node_modules in frontend container
-        run: docker exec quasar-frontend npm ci
+        run: docker exec greenitscan-frontend npm ci
         # Exécute npm ci dans le conteneur quasar-frontend pour installer node_modules dans /app/node_modules
 
       - name: Debug Docker services before start
