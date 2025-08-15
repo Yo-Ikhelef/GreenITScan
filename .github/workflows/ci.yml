@@ -61,6 +61,10 @@ jobs:
           sleep 10 # Additional wait for service stability
         continue-on-error: true
 
+      - name: Install quasar-project dependencies  # nodes fucking modules
+        run: npm install
+        working-directory: ./quasar-project
+
       - name: Debug Docker services after start
         run: |
           docker ps -a
