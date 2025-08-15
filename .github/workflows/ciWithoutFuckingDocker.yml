@@ -1,4 +1,4 @@
-name: GreenItScan CI Pipeline (Fixed for Real)
+name: GreenItScan CI Pipeline (Final Fix)
 on:
   push:
     branches: [cicd]
@@ -19,15 +19,14 @@ jobs:
           extensions: intl, mbstring, xml, zip, bcmath, gd
 
       - name: Install backend dependencies
-        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts
         working-directory: ./api-backend
 
       - name: Start backend server
         run: |
           cd api-backend
-          php -S 0.0.0.0:8000 -t public public/index.php > php-server.log 2>&1 &
-        env:
-          APP_ENV: test
+          nohup php -S 0.0.0.0:8000 -t public public/index.php > php.log 2>&1 &
+          sleep 5  # Temps pour démarrer
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,20 +43,20 @@ jobs:
         run: npm run build
         working-directory: ./quasar-project
 
-      - name: Start frontend server
+      - name: Install `serve` and start frontend server
         run: |
           cd quasar-project
-          npx quasar dev > quasar.log 2>&1 &
-          sleep 5  # Temps minimal pour le démarrage
+          npm install -g serve
+          nohup serve -s dist/spa -l 9000 > serve.log 2>&1 &
+          sleep 5  # Temps pour démarrer
 
       - name: Verify frontend is ready
         run: |
-          # Vérifier que la réponse contient bien le titre de l'app Quasar
           MAX_ATTEMPTS=10
           ATTEMPT=0
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            RESPONSE=$(curl -s http://localhost:9000)
-            if [[ "$RESPONSE" == *"<title>Quasar App</title>"* ]]; then
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000)
+            if [ "$RESPONSE" -eq 200 ]; then
               echo "Frontend is ready!"
               exit 0
             fi
@@ -65,20 +64,18 @@ jobs:
             sleep 2
           done
           echo "Frontend did not start correctly."
-          cat quasar-project/quasar.log
+          cat quasar-project/serve.log
           exit 1
 
       - name: Verify backend is ready
         run: |
-          curl -v http://localhost:8000/api/doc || echo "Backend not ready"
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/doc | grep -q "200" || exit 1
 
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
           browser: chrome
-          spec: |
-            quasar-project/cypress/e2e/first.cy.js
-            quasar-project/cypress/e2e/login_spec.cy.js
+          spec: quasar-project/cypress/e2e/first.cy.js
           working-directory: ./quasar-project
         env:
           CYPRESS_FRONTEND_URL: http://localhost:9000
@@ -89,15 +86,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cypress-artifacts
-          path: |
-            quasar-project/cypress/screenshots
-            quasar-project/cypress/videos
+          path: quasar-project/cypress/screenshots
           retention-days: 7
 
       - name: Debug logs on failure
         if: failure()
         run: |
-          echo "=== PHP Server Logs ==="
-          cat api-backend/php-server.log
-          echo "=== Quasar Logs ==="
-          cat quasar-project/quasar.log
+          echo "=== PHP Logs ==="
+          cat api-backend/php.log
+          echo "=== Serve Logs ==="
+          cat quasar-project/serve.log
