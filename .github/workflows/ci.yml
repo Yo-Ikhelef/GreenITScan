@@ -15,30 +15,43 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        # Clone le dépôt pour accéder à docker-compose.yml, Dockerfile.frontend, et quasar-project
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18.19.1'
+        # Configure Node.js 18.19.1 pour les outils comme npx (utilisé par wait-on et Cypress)
 
-      - name: Install Make
-        run: sudo apt-get update && sudo apt-get install -y make
+      - name: Install Make and Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make docker.io
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+        # Installe make et docker.io, puis télécharge et rend exécutable Docker Compose v2.29.7
 
       - name: Clean up Docker containers
         run: docker-compose -f docker-compose.yml down -v --remove-orphans
+        # Arrête et supprime les conteneurs et volumes existants pour repartir de zéro
 
       - name: Build Docker images
-        run: make build || { docker-compose -f docker-compose.yml logs; exit 1; }
+        run: docker-compose -f docker-compose.yml build frontend
+        # Construit l’image du conteneur frontend, ce qui exécute RUN npm ci dans Dockerfile.frontend pour installer node_modules dans /app/node_modules
 
       - name: Start Docker services
         run: docker-compose -f docker-compose.yml up -d --wait
         timeout-minutes: 10
+        # Démarre les services (frontend, backend, database) et attend que les healthchecks soient validés
 
       - name: Debug Docker services
         run: |
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
+          docker exec quasar-frontend ls -la /app/node_modules | head -n 20
           curl http://localhost:9000 || echo "Frontend not available"
+        # Liste les conteneurs, affiche les logs du frontend, vérifie la présence de node_modules dans le conteneur, et teste l’accès à http://localhost:9000
 
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
@@ -55,6 +68,7 @@ jobs:
         env:
           CYPRESS_FRONTEND_URL: http://localhost:9000
           CYPRESS_API_URL: http://localhost:8000
+        # Exécute les tests Cypress E2E, en s’appuyant sur le serveur frontend dans le conteneur
 
       - name: Upload Cypress E2E artifacts
         if: always()
@@ -65,14 +79,17 @@ jobs:
             quasar-project/cypress/screenshots
             quasar-project/cypress/videos
           retention-days: 7
+        # Télécharge les artefacts (screenshots, vidéos) en cas de succès ou d’échec
 
       - name: Debug Docker logs on failure
         if: failure()
         run: docker-compose -f docker-compose.yml logs
+        # Affiche les logs de tous les conteneurs en cas d’échec
 
       - name: Stop Docker services
         if: always()
         run: docker-compose -f docker-compose.yml down -v
+        # Arrête et supprime les conteneurs et volumes
 
 # cypress-component:
 #   runs-on: ubuntu-latest
