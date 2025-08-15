@@ -20,7 +20,7 @@ jobs:
         run: |
           docker-compose -f docker-compose.yml down -v --remove-orphans || true
           docker system prune -f --volumes || true
-        continue-on-error: true
+       # continue-on-error: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
