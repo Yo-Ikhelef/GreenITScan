@@ -39,8 +39,8 @@ jobs:
 
       - name: Fix NPM vulnerabilities
         run: |
-          npm audit fix
-          npm install
+          npm audit fix || true
+          npm install || true
         working-directory: ./quasar-project
         continue-on-error: true
 
@@ -58,6 +58,7 @@ jobs:
       - name: Start Docker services and initialize
         run: |
           make install
+          sleep 10 # Additional wait for service stability
         continue-on-error: true
 
       - name: Debug Docker services after start
@@ -65,12 +66,14 @@ jobs:
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
           docker-compose -f docker-compose.yml logs backend
+          curl -v http://localhost:9000 || echo "Failed to connect to frontend"
+          curl -v http://localhost:8000/api/doc || echo "Failed to connect to backend"
 
       - name: Wait for services to be healthy
         run: |
-          npx wait-on http://localhost:9000 --timeout 300000
-          npx wait-on http://localhost:8000/api/doc --timeout 120000
-          npx wait-on tcp:localhost:3307 --timeout 60000
+          npx wait-on http://localhost:9000 --timeout 300000 --interval 1000 --verbose
+          npx wait-on http://localhost:8000/api/doc --timeout 120000 --interval 1000 --verbose
+          npx wait-on tcp:localhost:3307 --timeout 60000 --interval 1000 --verbose
         continue-on-error: true
 
       - name: Install quasar-project dependencies
