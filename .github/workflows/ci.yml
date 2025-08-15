@@ -54,11 +54,6 @@ jobs:
           docker ps -a
           docker-compose -f docker-compose.yml config
           docker-compose -f docker-compose.yml logs
-
-      - name: Install node_modules in frontend container
-        run: |
-          docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
-          docker exec quasar-frontend npm ci
     
       - name: Start Docker services and initialize
         run: |
