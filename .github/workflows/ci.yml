@@ -39,7 +39,7 @@ jobs:
 
       - name: Build Docker images
         run: |
-          make build
+          make install
         continue-on-error: true
 
       - name: Debug Docker services before start
