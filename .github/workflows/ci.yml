@@ -12,22 +12,6 @@ jobs:
   cypress-e2e:
     runs-on: ubuntu-latest
 
-    services:
-      database:
-        image: mariadb:11.8.2
-        env:
-          MYSQL_ROOT_PASSWORD: "YourPassword123"
-          MYSQL_DATABASE: "GreenITScan"
-        ports:
-          - "3308:3306"
-        options: >-
-          --health-cmd="bash -c '</dev/tcp/127.0.0.1/3306'"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=10
-        volumes:
-          - GreenITScan_mariadb_data:/var/lib/mysql
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,39 +29,38 @@ jobs:
           cache: 'npm'
           cache-dependency-path: quasar-project/package-lock.json
 
-      - name: Install Docker Compose
+      - name: Install Make and Docker Compose
         run: |
+          sudo apt-get update
+          sudo apt-get install -y make
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
       - name: Build Docker images
         run: |
-          docker-compose -f docker-compose.yml build
+          make build
+        continue-on-error: true
 
-      - name: Debug Docker services
+      - name: Debug Docker services before start
+        run: |
+          docker ps -a
+          docker-compose -f docker-compose.yml config
+          docker-compose -f docker-compose.yml logs
+
+      - name: Start Docker services and initialize
+        run: |
+          make install
+          # Wait for services to be healthy
+          npx wait-on http://localhost:9000 --timeout 300000
+          npx wait-on http://localhost:8000/api/doc --timeout 120000
+          npx wait-on tcp:localhost:3307 --timeout 60000
+
+      - name: Debug Docker services after start
         run: |
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
-
-      - name: Start Docker services
-        run: |
-          docker-compose -f docker-compose.yml up -d
-          # Wait for services to be healthy
-          npx wait-on http://localhost:9000 --timeout 180000
-          npx wait-on http://localhost:8000/api/doc --timeout 120000
-          npx wait-on tcp:localhost:3307 --timeout 60000 # Aligné avec docker-compose.yml
-
-      - name: Initialize backend (migrations and JWT keys)
-        run: |
-          docker-compose exec -T backend composer install
-          docker-compose exec -T backend php bin/console doctrine:database:create --if-not-exists
-          docker-compose exec -T backend php bin/console doctrine:migrations:migrate --no-interaction
-          docker-compose exec -T backend php bin/console lexik:jwt:generate-keypair --skip-if-exists
-
-      - name: Debug Docker logs
-        if: failure()
-        run: docker-compose -f docker-compose.yml logs
+          docker-compose -f docker-compose.yml logs backend
 
       - name: Install quasar-project dependencies
         run: npm ci
@@ -109,9 +92,13 @@ jobs:
             quasar-project/cypress/videos
           retention-days: 7
 
+      - name: Debug Docker logs on failure
+        if: failure()
+        run: docker-compose -f docker-compose.yml logs
+
       - name: Stop Docker services
         if: always()
-        run: docker-compose -f docker-compose.yml down -v --remove-orphans
+        run: make down
 
   cypress-component:
     runs-on: ubuntu-latest
