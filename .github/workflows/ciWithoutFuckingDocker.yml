@@ -1,4 +1,4 @@
-name: GreenItScan CI Pipeline (No Database)
+name: GreenItScan CI Pipeline (Fixed)
 on:
   push:
     branches: [cicd]
@@ -12,6 +12,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3.6'
+          extensions: intl, mbstring, xml, zip, bcmath, gd
+
+      - name: Install backend dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
+        working-directory: ./api-backend
+
+      - name: Start backend server
+        run: |
+          cd api-backend
+          php -S 0.0.0.0:8000 -t public public/index.php > /dev/null 2>&1 &
+        env:
+          APP_ENV: test
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -23,29 +40,18 @@ jobs:
         run: npm ci
         working-directory: ./quasar-project
 
-      - name: Start frontend server
-        run: npm run dev &
+      - name: Build frontend
+        run: npm run build
         working-directory: ./quasar-project
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3.6'
-          extensions: intl, mbstring, xml, zip, bcmath, gd
-
-      - name: Install backend dependencies
-        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-scripts --verbose
-        working-directory: ./api-backend
-
-      - name: Start backend server (without database)
+      - name: Start frontend server
         run: |
-          cd api-backend
-          # Désactiver la connexion à la base de données dans l'environnement de test
-          export APP_ENV=test
-          php -S 0.0.0.0:8000 -t public public/index.php &
-        env:
-          # Variables pour simuler ou désactiver la base de données
-          DATABASE_URL: "none"
+          cd quasar-project
+          npx quasar dev > /dev/null 2>&1 &
+          sleep 10  # Attendre que le serveur démarre
+
+      - name: Check if frontend is running
+        run: curl -v http://localhost:9000 || echo "Frontend not ready yet"
 
       - name: Wait for services
         run: |
