@@ -42,12 +42,12 @@ jobs:
           npm audit fix
           npm install
         working-directory: ./quasar-project
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: Build Docker images
         run: |
           make build
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: Debug Docker services before start
         run: |
@@ -58,7 +58,7 @@ jobs:
       - name: Start Docker services and initialize
         run: |
           make install
-        continue-on-error: true
+        # continue-on-error: true
 
        # - name: Install node_modules in frontend container
        #   run: |
@@ -78,10 +78,14 @@ jobs:
           npx wait-on http://localhost:9000 --timeout 300000
           npx wait-on http://localhost:8000/api/doc --timeout 120000
           npx wait-on tcp:localhost:3307 --timeout 60000
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: Install quasar-project dependencies
         run: npm ci
+        working-directory: ./quasar-project
+
+      - name: Update @quasar/app-webpack
+        run: npm install @quasar/app-webpack@latest
         working-directory: ./quasar-project
 
       - name: Run Cypress E2E tests
