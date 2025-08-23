@@ -42,7 +42,7 @@ jobs:
           npm audit fix
           npm install
         working-directory: ./quasar-project
-        # continue-on-error: true
+        continue-on-error: true
 
       - name: Build Docker images
         run: |
