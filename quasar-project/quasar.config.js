@@ -63,6 +63,11 @@ var quasar_config_default = defineConfig((ctx) => {
       esbuildTarget: {
         browser: ["es2022", "firefox115", "chrome115", "safari14"],
         node: "node20"
+      },
+      chainWebpack(chain) {
+        chain.resolve.symlinks(false);
+        chain.resolve.alias.set('@', path.resolve(__dirname, 'src'));
+        chain.resolve.alias.set('vue', path.resolve(__dirname, 'node_modules/vue'));
       }
       // rtl: true, // https://quasar.dev/options/rtl-support
       // showProgress: false,
