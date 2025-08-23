@@ -56,5 +56,16 @@ services:
       - database
     container_name: phpmyadmin
 
+  cypress:
+    image: cypress/included:12.17.3
+    depends_on:
+      - frontend
+    environment:
+      - CYPRESS_baseUrl=http://frontend:9000
+    working_dir: /e2e
+    volumes:
+      - ./quasar-project:/e2e
+    command: npx cypress run
+    
 volumes:
   GreenITScan_mariadb_data:
