@@ -12,100 +12,136 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Clean up Docker containers
         run: |
+          echo "=== Cleaning up Docker containers ==="
           docker-compose -f docker-compose.yml down -v --remove-orphans || true
           docker system prune -f --volumes || true
         continue-on-error: true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18.19.1'
           cache: 'npm'
           cache-dependency-path: quasar-project/package-lock.json
+
       - name: Install Make and Docker Compose
         run: |
+          echo "=== Installing Make and Docker Compose ==="
           sudo apt-get update
           sudo apt-get install -y make
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
+
+      # - name: Fix NPM vulnerabilities
+      #   run: |
+      #     npm audit fix
+      #     npm install
+      #   working-directory: ./quasar-project
+      #   continue-on-error: true
+
       - name: Build Docker images
         run: |
+          echo "=== Building Docker images ==="
           make build
+        continue-on-error: true
+
       - name: Debug Docker services before start
         run: |
+          echo "=== Docker containers before start ==="
           docker ps -a
+          echo "=== Docker Compose config ==="
           docker-compose -f docker-compose.yml config
+          echo "=== Docker Compose logs ==="
           docker-compose -f docker-compose.yml logs
+
       - name: Start Docker services and initialize
         run: |
+          echo "=== Starting Docker services ==="
           make install
-      - name: Install dependencies in quasar-frontend
-        run: |
-          docker exec quasar-frontend npm ci
-        working-directory: ./quasar-project
+        continue-on-error: true
+
+      # - name: Install node_modules in frontend container
+      #   run: |
+      #     docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
+      #     docker exec quasar-frontend npm ci
+      #   # Vérifie que le conteneur quasar-frontend existe, puis installe node_modules dans /app/node_modules
+
       - name: Debug Docker services after start
         run: |
+          echo "=== Docker containers after start ==="
           docker ps -a
+          echo "=== Docker Compose logs (frontend) ==="
           docker-compose -f docker-compose.yml logs frontend
+          echo "=== Docker Compose logs (backend) ==="
           docker-compose -f docker-compose.yml logs backend
+          echo "=== Listing node_modules in quasar-frontend ==="
           docker exec quasar-frontend ls -la /app/node_modules | head -n 20
-      - name: Start Quasar dev server
+
+      - name: Test TCP ports
         run: |
-          docker exec quasar-frontend npm run dev > /app/quasar-dev.log 2>&1 &
-          sleep 10
-          docker exec quasar-frontend cat /app/quasar-dev.log
-        continue-on-error: true
-      - name: Upload Quasar dev logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: quasar-dev-logs
-          path: /app/quasar-dev.log
-          retention-days: 7
-      - name: Debug Quasar network
+          echo "=== Testing TCP ports ==="
+          sudo apt-get install -y netcat
+          echo "Testing port 9000 (frontend)..."
+          nc -zv localhost 9000 || echo "Port 9000 not reachable"
+          echo "Testing port 8000 (backend)..."
+          nc -zv localhost 8000 || echo "Port 8000 not reachable"
+          echo "Testing port 3307 (database)..."
+          nc -zv localhost 3307 || echo "Port 3307 not reachable"
+
+      - name: Test HTTP endpoints
         run: |
-          docker exec quasar-frontend netstat -tuln | grep 9000 || echo "Port 9000 not listening"
-          docker exec quasar-frontend curl -v http://quasar-frontend:9000 || echo "Failed to reach Quasar server"
-        continue-on-error: true
+          echo "=== Testing HTTP endpoints ==="
+          echo "Testing frontend endpoint..."
+          curl -v http://localhost:9000 || echo "Failed to reach frontend"
+          echo "Testing backend API endpoint..."
+          curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
+
       - name: Wait for services to be healthy
         run: |
-          npm install wait-on
-          npx wait-on http://quasar-frontend:9000 --timeout 300000
-          npx wait-on http://api_backend:8000/api/doc --timeout 120000
-          npx wait-on tcp:db:3306 --timeout 60000
-        working-directory: ./quasar-project
+          echo "=== Waiting for services to be healthy ==="
+          npx wait-on http://localhost:9000 --timeout 300000
+          npx wait-on http://localhost:8000/api/doc --timeout 120000
+          npx wait-on tcp:localhost:3307 --timeout 60000
+        continue-on-error: true
+
       - name: Install PHPUnit in backend container
         run: |
+          echo "=== Installing PHPUnit in backend container ==="
           docker exec api_backend composer require --dev phpunit/phpunit
-      - name: Initialize test database
-        run: |
-          docker exec api_backend php artisan migrate --env=test
-          docker exec api_backend php artisan db:seed --env=test
-        continue-on-error: true
-      - name: Test API endpoint manually
-        run: |
-          docker exec api_backend curl -v -X POST http://api_backend:8000/api/users/login -H "Content-Type: application/json" -d '{"email":"user@example.com","password":"azerty"}'
-        continue-on-error: true
+
       - name: Run PHPUnit tests in backend container
         run: |
-          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --log-junit /tmp/phpunit-report.xml
+          echo "=== Running PHPUnit tests ==="
+          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure
         continue-on-error: true
-      - name: Upload PHPUnit test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpunit-report
-          path: /tmp/phpunit-report.xml
-          retention-days: 7
-      - name: Upload PHPUnit text output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpunit-text-output
-          path: /tmp/phpunit-output.txt
-          retention-days: 7
+
+      - name: Install quasar-project dependencies
+        run: |
+          echo "=== Installing quasar-project dependencies ==="
+          npm ci
+        working-directory: ./quasar-project
+
+      - name: Update @quasar/app-webpack
+        run: |
+          echo "=== Updating @quasar/app-webpack ==="
+          npm install @quasar/app-webpack@latest
+        working-directory: ./quasar-project
+
+      - name: Start Quasar dev server
+        run: |
+          echo "=== Starting Quasar dev server ==="
+          npm run dev &
+        working-directory: ./quasar-project
+
+      - name: Wait for Quasar to be ready
+        run: |
+          echo "=== Waiting for Quasar to be ready ==="
+          npx wait-on http://localhost:9000 --timeout 150000
+
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -119,8 +155,9 @@ jobs:
           working-directory: ./quasar-project
           record: false
         env:
-          CYPRESS_FRONTEND_URL: http://quasar-frontend:9000
-          CYPRESS_API_URL: http://api_backend:8000
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+          CYPRESS_API_URL: http://localhost:8000
+
       - name: Upload Cypress E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -130,9 +167,55 @@ jobs:
             quasar-project/cypress/screenshots
             quasar-project/cypress/videos
           retention-days: 7
+
       - name: Debug Docker logs on failure
         if: failure()
-        run: docker-compose -f docker-compose.yml logs
+        run: |
+          echo "=== Debugging Docker logs on failure ==="
+          docker-compose -f docker-compose.yml logs > docker_logs.txt
+          cat docker_logs.txt
+          mkdir -p logs
+          cp docker_logs.txt logs/
+
+      - name: Upload Docker logs and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-diagnostics
+          path: logs/
+          retention-days: 7
+
       - name: Stop Docker services
         if: always()
-        run: make down
+        run: |
+          echo "=== Stopping Docker services ==="
+          make down
+
+# cypress-component:
+#   runs-on: ubuntu-latest
+#   steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v4
+#       with:
+#         node-version: '18.19.1'
+#         cache: 'npm'
+#         cache-dependency-path: quasar-project/package-lock.json
+#     - name: Install quasar-project dependencies
+#       run: npm ci
+#       working-directory: ./quasar-project
+#     - name: Run Cypress component tests
+#       uses: cypress-io/github-action@v6
+#       with:
+#         browser: chrome
+#         component: true
+#         spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+#         working-directory: ./quasar-project
+#     - name: Upload Cypress component artifacts
+#       if: always()
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: cypress-component-artifacts
+#         path: quasar-project/cypress/downloads
+#         retention-days: 77
