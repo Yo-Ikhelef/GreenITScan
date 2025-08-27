@@ -137,18 +137,18 @@ jobs:
           echo "=== Running PHPUnit tests ==="
           docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure || true
         continue-on-error: true
-      - name: Install quasar-project dependencies
-        run: |
-          echo "=== Installing quasar-project dependencies ==="
-          npm ci || true
-        working-directory: ./quasar-project
-        continue-on-error: true
-      - name: Update @quasar/app-webpack
-        run: |
-          echo "=== Updating @quasar/app-webpack ==="
-          npm install @quasar/app-webpack@latest || true
-        working-directory: ./quasar-project
-        continue-on-error: true
+      #- name: Install quasar-project dependencies
+      #  run: |
+      #    echo "=== Installing quasar-project dependencies ==="
+      #    npm ci || true
+      #  working-directory: ./quasar-project
+      #  continue-on-error: true
+      #- name: Update @quasar/app-webpack
+      #  run: |
+      #    echo "=== Updating @quasar/app-webpack ==="
+      #    npm install @quasar/app-webpack@latest || true
+      #  working-directory: ./quasar-project
+      #  continue-on-error: true
       - name: Debug Quasar container logs
         run: docker logs quasar-frontend
         continue-on-error: true
