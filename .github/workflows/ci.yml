@@ -139,19 +139,6 @@ jobs:
         working-directory: ./quasar-project
         continue-on-error: true
 
-      - name: Start Quasar dev server
-        run: |
-          echo "=== Starting Quasar dev server ==="
-          npm run dev & || true
-        working-directory: ./quasar-project
-        continue-on-error: true
-
-      - name: Wait for Quasar to be ready
-        run: |
-          echo "=== Waiting for Quasar to be ready ==="
-          npx wait-on http://localhost:9000 --timeout 150000 || echo "Timeout waiting for Quasar"
-        continue-on-error: true
-
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -165,8 +152,8 @@ jobs:
           working-directory: ./quasar-project
           record: false
         env:
-          CYPRESS_FRONTEND_URL: http://localhost:9000
-          CYPRESS_API_URL: http://localhost:8000
+          CYPRESS_FRONTEND_URL: http://quasar-frontend:9000
+          CYPRESS_API_URL: http://api_backend:8000
         continue-on-error: true
 
       - name: Upload Cypress E2E artifacts
