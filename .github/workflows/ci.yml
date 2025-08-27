@@ -37,12 +37,12 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
-      - name: Fix NPM vulnerabilities
-        run: |
-          npm audit fix
-          npm install
-        working-directory: ./quasar-project
-        continue-on-error: true
+      # - name: Fix NPM vulnerabilities
+      #   run: |
+      #     npm audit fix
+      #     npm install
+      #   working-directory: ./quasar-project
+      #   continue-on-error: true
 
       - name: Build Docker images
         run: |
@@ -78,6 +78,15 @@ jobs:
           npx wait-on http://localhost:9000 --timeout 300000
           npx wait-on http://localhost:8000/api/doc --timeout 120000
           npx wait-on tcp:localhost:3307 --timeout 60000
+        continue-on-error: true
+
+      - name: Install PHPUnit in backend container
+        run: |
+          docker exec votre-nom-de-conteneur-backend composer require --dev phpunit/phpunit
+
+      - name: Run PHPUnit tests in backend container
+        run: |
+          docker exec votre-nom-de-conteneur-backend vendor/bin/phpunit
         continue-on-error: true
 
       - name: Install quasar-project dependencies
