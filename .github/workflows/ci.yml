@@ -98,7 +98,7 @@ jobs:
         working-directory: ./quasar-project
 
       - name: Start Quasar dev server
-        run: npm run dev &
+        run: quasar dev 
         working-directory: ./quasar-project
 
       - name: Wait for Quasar to be ready
