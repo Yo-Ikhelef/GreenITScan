@@ -82,11 +82,11 @@ jobs:
 
       - name: Install PHPUnit in backend container
         run: |
-          docker exec votre-nom-de-conteneur-backend composer require --dev phpunit/phpunit
+          docker exec api_backend  composer require --dev phpunit/phpunit
 
       - name: Run PHPUnit tests in backend container
         run: |
-          docker exec votre-nom-de-conteneur-backend vendor/bin/phpunit
+          docker exec api_backend  vendor/bin/phpunit
         continue-on-error: true
 
       - name: Install quasar-project dependencies

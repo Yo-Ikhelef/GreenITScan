@@ -1,3 +1,4 @@
+import path from 'path';
 /* eslint-disable */
 /**
  * THIS FILE IS GENERATED AUTOMATICALLY.
