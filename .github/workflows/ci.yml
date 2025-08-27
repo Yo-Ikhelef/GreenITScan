@@ -41,12 +41,34 @@ jobs:
       - name: Start Docker services and initialize
         run: |
           make install
+      - name: Install dependencies in quasar-frontend
+        run: |
+          docker exec quasar-frontend npm ci
+        working-directory: ./quasar-project
       - name: Debug Docker services after start
         run: |
           docker ps -a
           docker-compose -f docker-compose.yml logs frontend
           docker-compose -f docker-compose.yml logs backend
           docker exec quasar-frontend ls -la /app/node_modules | head -n 20
+      - name: Start Quasar dev server
+        run: |
+          docker exec quasar-frontend npm run dev > /app/quasar-dev.log 2>&1 &
+          sleep 10
+          docker exec quasar-frontend cat /app/quasar-dev.log
+        continue-on-error: true
+      - name: Upload Quasar dev logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quasar-dev-logs
+          path: /app/quasar-dev.log
+          retention-days: 7
+      - name: Debug Quasar network
+        run: |
+          docker exec quasar-frontend netstat -tuln | grep 9000 || echo "Port 9000 not listening"
+          docker exec quasar-frontend curl -v http://quasar-frontend:9000 || echo "Failed to reach Quasar server"
+        continue-on-error: true
       - name: Wait for services to be healthy
         run: |
           npm install wait-on
@@ -68,7 +90,7 @@ jobs:
         continue-on-error: true
       - name: Run PHPUnit tests in backend container
         run: |
-          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure --log-junit /tmp/phpunit-report.xml
+          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --log-junit /tmp/phpunit-report.xml
         continue-on-error: true
       - name: Upload PHPUnit test report
         if: always()
@@ -84,27 +106,6 @@ jobs:
           name: phpunit-text-output
           path: /tmp/phpunit-output.txt
           retention-days: 7
-      - name: Install quasar-project dependencies
-        run: npm ci
-        working-directory: ./quasar-project
-      - name: Update @quasar/app-webpack
-        run: npm install @quasar/app-webpack@latest
-        working-directory: ./quasar-project
-      - name: Start Quasar dev server
-        run: |
-          docker exec quasar-frontend npm run dev > /app/quasar-dev.log 2>&1 &
-          sleep 10
-          docker exec quasar-frontend cat /app/quasar-dev.log
-        continue-on-error: true
-      - name: Debug Quasar server
-        run: |
-          docker exec quasar-frontend curl -v http://quasar-frontend:9000 || echo "Failed to reach Quasar server"
-          docker-compose -f docker-compose.yml logs quasar-frontend
-        continue-on-error: true
-      - name: Wait for Quasar to be ready
-        run: |
-          npx wait-on http://quasar-frontend:9000 --timeout 300000
-        working-directory: ./quasar-project
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
@@ -135,32 +136,3 @@ jobs:
       - name: Stop Docker services
         if: always()
         run: make down
-
-# cypress-component:
-#   runs-on: ubuntu-latest
-#   steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-#     - name: Setup Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: '18.19.1'
-#         cache: 'npm'
-#         cache-dependency-path: quasar-project/package-lock.json
-#     - name: Install quasar-project dependencies
-#       run: npm ci
-#       working-directory: ./quasar-project
-#     - name: Run Cypress component tests
-#       uses: cypress-io/github-action@v6
-#       with:
-#         browser: chrome
-#         component: true
-#         spec: quasar-project/cypress/e2e/card_result_spec.cy.js
-#         working-directory: ./quasar-project
-#     - name: Upload Cypress component artifacts
-#       if: always()
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: cypress-component-artifacts
-#         path: quasar-project/cypress/downloads
-#         retention-days: 77
