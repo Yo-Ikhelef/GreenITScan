@@ -86,7 +86,7 @@ jobs:
 
       - name: Run PHPUnit tests in backend container
         run: |
-          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --verbose
+          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox
         continue-on-error: true
 
       - name: Install quasar-project dependencies
@@ -100,6 +100,9 @@ jobs:
       - name: Start Quasar dev server
         run: npm run dev &
         working-directory: ./quasar-project
+
+      - name: Wait for Quasar to be ready
+        run: npx wait-on http://localhost:9000 --timeout 60000
 
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
