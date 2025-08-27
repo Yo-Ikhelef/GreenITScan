@@ -83,7 +83,9 @@ var quasar_config_default = defineConfig((ctx) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#devserver
     devServer: {
       server: {
-        type: "http"
+        type: "http",
+        host: '0.0.0.0',
+        port: 9000,
       },
       open: true
       // opens browser window automatically

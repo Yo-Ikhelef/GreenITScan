@@ -12,6 +12,8 @@ services:
     ports:
       - "9000:9000"
     container_name: quasar-frontend
+    environment:
+      - DISABLE_SERVE_INDEX=${DISABLE_SERVE_INDEX}
 
   backend:
     build:
