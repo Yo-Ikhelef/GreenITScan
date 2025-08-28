@@ -101,6 +101,26 @@ jobs:
           done
           curl -v http://localhost:8000/api/doc > logs/backend_response.txt || true
         continue-on-error: true
+      
+      - name: Test TCP ports
+        run: |
+          echo "=== Testing TCP ports ==="
+          echo "Testing port 9000 (frontend)..."
+          nc -zv localhost 9000 || echo "Port 9000 not reachable"
+          echo "Testing port 8000 (backend)..."
+          nc -zv localhost 8000 || echo "Port 8000 not reachable"
+          echo "Testing port 3307 (database)..."
+          nc -zv localhost 3307 || echo "Port 3307 not reachable"
+        continue-on-error: true
+        
+      - name: Test HTTP endpoints
+        run: |
+          echo "=== Testing HTTP endpoints ==="
+          echo "Testing frontend endpoint..."
+          curl -v http://localhost:9000 || echo "Failed to reach frontend"
+          echo "Testing backend API endpoint..."
+          curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
+        continue-on-error: true
 
       - name: Check for multiple quasar dev executions
         run: |
