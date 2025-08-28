@@ -64,8 +64,11 @@ jobs:
         run: |
           echo "=== Updating @quasar/app-webpack inside container ==="
           npm install @quasar/app-webpack@latest --save-dev || true
+          npm install quasar@latest --save-dev || true
           docker exec quasar-frontend npm install || true
           docker-compose -f docker-compose.yml restart frontend || true
+          echo "=== Waiting for frontend to stabilize ==="
+          sleep 20
         working-directory: ./quasar-project
         continue-on-error: true
       - name: Debug Docker services after start
@@ -142,12 +145,6 @@ jobs:
           echo "=== Running PHPUnit tests ==="
           docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure || true
         continue-on-error: true
-      #- name: Install quasar-project dependencies
-      # run: |
-      # echo "=== Installing quasar-project dependencies ==="
-      # npm ci || true
-      # working-directory: ./quasar-project
-      # continue-on-error: true
       - name: Debug Quasar container logs
         run: docker logs quasar-frontend
         continue-on-error: true
