@@ -121,11 +121,11 @@ jobs:
           browser: electron
           headless: true
           spec: |
-            quasar-project/cypress/e2e/first_spec.cy.js
-            quasar-project/cypress/e2e/login_spec.cy.js
-            quasar-project/cypress/e2e/questionnaire_page_spec.cy.js
-            quasar-project/cypress/e2e/register_user_spec.cy.js
-            quasar-project/cypress/e2e/resultats_page_spec.cy.js
+            cypress/e2e/first_spec.cy.js
+            cypress/e2e/login_spec.cy.js
+            cypress/e2e/questionnaire_page_spec.cy.js
+            cypress/e2e/register_user_spec.cy.js
+            cypress/e2e/resultats_page_spec.cy.js
           working-directory: ./quasar-project
           record: false
         env:
