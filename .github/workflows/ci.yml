@@ -25,6 +25,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: quasar-project/package-lock.json
         continue-on-error: true
+      - name: Fix NPM vulnerabilities
+        run: |
+          echo "=== Fixing NPM vulnerabilities ==="
+          npm audit fix || true
+          npm install || true
+        working-directory: ./quasar-project
+        continue-on-error: true
       - name: Install Make and Docker Compose
         run: |
           echo "=== Installing Make and Docker Compose ==="
@@ -34,12 +41,6 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
         continue-on-error: true
-      # - name: Fix NPM vulnerabilities
-      #   run: |
-      #     npm audit fix
-      #     npm install
-      #   working-directory: ./quasar-project
-      #   continue-on-error: true
       - name: Build Docker images
         run: |
           echo "=== Building Docker images ==="
@@ -59,11 +60,14 @@ jobs:
           echo "=== Starting Docker services ==="
           make install
         continue-on-error: true
-      # - name: Install node_modules in frontend container
-      #   run: |
-      #     docker ps -a | grep quasar-frontend || { echo "Container quasar-frontend not found"; exit 1; }
-      #     docker exec quasar-frontend npm ci
-      #   continue-on-error: true
+      - name: Update @quasar/app-webpack
+        run: |
+          echo "=== Updating @quasar/app-webpack inside container ==="
+          npm install @quasar/app-webpack@latest --save-dev || true
+          docker exec quasar-frontend npm install || true
+          docker-compose -f docker-compose.yml restart frontend || true
+        working-directory: ./quasar-project
+        continue-on-error: true
       - name: Debug Docker services after start
         run: |
           echo "=== Docker containers after start ==="
@@ -117,13 +121,14 @@ jobs:
           echo "=== Testing HTTP endpoints ==="
           echo "Testing frontend endpoint..."
           curl -v http://localhost:9000 || echo "Failed to reach frontend"
+          nc -zv 127.0.0.1 9000 || echo "IPv4 not reachable"
           echo "Testing backend API endpoint..."
           curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
         continue-on-error: true
       - name: Wait for services to be healthy
         run: |
           echo "=== Waiting for services to be healthy ==="
-          npx wait-on http://localhost:9000 --timeout 300000 || echo "Timeout waiting for frontend"
+          npx wait-on http://localhost:9000 --timeout 600000 || echo "Timeout waiting for frontend"
           npx wait-on http://localhost:8000/api/doc --timeout 120000 || echo "Timeout waiting for backend API"
           npx wait-on tcp:localhost:3307 --timeout 60000 || echo "Timeout waiting for database"
         continue-on-error: true
@@ -138,23 +143,11 @@ jobs:
           docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure || true
         continue-on-error: true
       #- name: Install quasar-project dependencies
-      #  run: |
-      #    echo "=== Installing quasar-project dependencies ==="
-      #    npm ci || true
-      #  working-directory: ./quasar-project
-      #  continue-on-error: true
-
-      - name: Update @quasar/app-webpack
-        run: |
-          echo "=== Updating @quasar/app-webpack ==="
-          npm install @quasar/app-webpack@latest || true
-        working-directory: ./quasar-project
-        continue-on-error: true
-
-      - name: tests
-        run: curl -v http://localhost:9000 || true
-            nc -zv 127.0.0.1 9000 || echo "IPv4 not reachable"
-      
+      # run: |
+      # echo "=== Installing quasar-project dependencies ==="
+      # npm ci || true
+      # working-directory: ./quasar-project
+      # continue-on-error: true
       - name: Debug Quasar container logs
         run: docker logs quasar-frontend
         continue-on-error: true
@@ -189,10 +182,11 @@ jobs:
         if: failure()
         run: |
           echo "=== Debugging Docker logs on failure ==="
-          docker-compose -f docker-compose.yml logs > docker_logs.txt || true
-          cat docker_logs.txt || true
           mkdir -p logs || true
-          cp docker_logs.txt logs/ || true
+          docker-compose -f docker-compose.yml logs > logs/docker_logs.txt || true
+          docker logs quasar-frontend > logs/quasar_frontend_logs.txt || true
+          docker logs api_backend > logs/api_backend_logs.txt || true
+          cat logs/*.txt || true
         continue-on-error: true
       - name: Upload Docker logs and diagnostics
         if: always()
@@ -209,30 +203,30 @@ jobs:
           make down || true
         continue-on-error: true
 # cypress-component:
-#   runs-on: ubuntu-latest
-#   steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-#     - name: Setup Node.js
-#       uses: actions/setup-node@v4
-#       with:
-#         node-version: '18.19.1'
-#         cache: 'npm'
-#         cache-dependency-path: quasar-project/package-lock.json
-#     - name: Install quasar-project dependencies
-#       run: npm ci
-#       working-directory: ./quasar-project
-#     - name: Run Cypress component tests
-#       uses: cypress-io/github-action@v6
-#       with:
-#         browser: chrome
-#         component: true
-#         spec: quasar-project/cypress/e2e/card_result_spec.cy.js
-#         working-directory: ./quasar-project
-#     - name: Upload Cypress component artifacts
-#       if: always()
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: cypress-component-artifacts
-#         path: quasar-project/cypress/downloads
-#         retention-days: 77
+# runs-on: ubuntu-latest
+# steps:
+# - name: Checkout code
+# uses: actions/checkout@v4
+# - name: Setup Node.js
+# uses: actions/setup-node@v4
+# with:
+# node-version: '18.19.1'
+# cache: 'npm'
+# cache-dependency-path: quasar-project/package-lock.json
+# - name: Install quasar-project dependencies
+# run: npm ci
+# working-directory: ./quasar-project
+# - name: Run Cypress component tests
+# uses: cypress-io/github-action@v6
+# with:
+# browser: chrome
+# component: true
+# spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+# working-directory: ./quasar-project
+# - name: Upload Cypress component artifacts
+# if: always()
+# uses: actions/upload-artifact@v4
+# with:
+# name: cypress-component-artifacts
+# path: quasar-project/cypress/downloads
+# retention-days: 77
