@@ -29,6 +29,7 @@ jobs:
         run: |
           echo "=== Fixing NPM vulnerabilities ==="
           npm audit fix || true
+          npm install quasar@latest --save-dev || true
           npm install || true
         working-directory: ./quasar-project
         continue-on-error: true
@@ -60,15 +61,23 @@ jobs:
           echo "=== Starting Docker services ==="
           make install
         continue-on-error: true
+      - name: Initialize test database
+        run: |
+          echo "=== Initializing test database ==="
+          docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
+          docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
+        continue-on-error: true
       - name: Update @quasar/app-webpack
         run: |
           echo "=== Updating @quasar/app-webpack inside container ==="
           npm install @quasar/app-webpack@latest --save-dev || true
-          npm install quasar@latest --save-dev || true
+          docker exec quasar-frontend rm -rf /app/node_modules /app/package-lock.json || true
           docker exec quasar-frontend npm install || true
           docker-compose -f docker-compose.yml restart frontend || true
           echo "=== Waiting for frontend to stabilize ==="
-          sleep 20
+          sleep 30
+          echo "=== Verifying @quasar/app-webpack version ==="
+          docker exec quasar-frontend npm list @quasar/app-webpack || true
         working-directory: ./quasar-project
         continue-on-error: true
       - name: Debug Docker services after start
@@ -199,31 +208,3 @@ jobs:
           echo "=== Stopping Docker services ==="
           make down || true
         continue-on-error: true
-# cypress-component:
-# runs-on: ubuntu-latest
-# steps:
-# - name: Checkout code
-# uses: actions/checkout@v4
-# - name: Setup Node.js
-# uses: actions/setup-node@v4
-# with:
-# node-version: '18.19.1'
-# cache: 'npm'
-# cache-dependency-path: quasar-project/package-lock.json
-# - name: Install quasar-project dependencies
-# run: npm ci
-# working-directory: ./quasar-project
-# - name: Run Cypress component tests
-# uses: cypress-io/github-action@v6
-# with:
-# browser: chrome
-# component: true
-# spec: quasar-project/cypress/e2e/card_result_spec.cy.js
-# working-directory: ./quasar-project
-# - name: Upload Cypress component artifacts
-# if: always()
-# uses: actions/upload-artifact@v4
-# with:
-# name: cypress-component-artifacts
-# path: quasar-project/cypress/downloads
-# retention-days: 77
