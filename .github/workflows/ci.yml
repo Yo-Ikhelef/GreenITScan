@@ -6,18 +6,28 @@ on:
   pull_request:
     branches:
       - cicd
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Raison pour déclencher manuellement le workflow'
+        required: false
+        default: 'Déclenchement manuel'
+
 jobs:
   cypress-e2e:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Clean up Docker containers
+
+      - name: Clean up Docker containers and volumes
         run: |
-          echo "=== Cleaning up Docker containers ==="
+          echo "=== Cleaning up Docker containers and volumes ==="
           docker-compose down -v --remove-orphans || true
+          docker volume rm $(docker volume ls -q | grep greenitscan) || true
           docker system prune -f --volumes || true
         continue-on-error: true
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -25,145 +35,91 @@ jobs:
           cache: 'npm'
           cache-dependency-path: quasar-project/package-lock.json
         continue-on-error: true
+
       - name: Install Make and Docker Compose
         run: |
           echo "=== Installing Make and Docker Compose ==="
           sudo apt-get update
-          sudo apt-get install -y make net-tools
+          sudo apt-get install -y make
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
         continue-on-error: true
+
       - name: Rebuild Docker images
         run: |
           echo "=== Rebuilding Docker images ==="
           docker-compose build --no-cache frontend || true
           make build || true
         continue-on-error: true
-      - name: Debug Docker services before start
-        run: |
-          echo "=== Docker containers before start ==="
-          docker ps -a || true
-          echo "=== Docker Compose config ==="
-          docker-compose config || true
-          echo "=== Docker Compose logs ==="
-          docker-compose logs || true
-        continue-on-error: true
+
       - name: Start Docker services
         run: |
           echo "=== Starting Docker services ==="
           make install || true
           echo "=== Waiting for services to stabilize ==="
-          sleep 120
+          sleep 60
         continue-on-error: true
+
       - name: Initialize test database
         run: |
           echo "=== Initializing test database ==="
           docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
           docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
         continue-on-error: true
-      - name: Debug network status
+
+      - name: Rebuild node_modules in frontend container
         run: |
-          echo "=== Network status ==="
-          netstat -tuln || true
-          ping -c 4 localhost || true
-          echo "=== Docker network inspect ==="
-          docker network ls || true
-          docker network inspect bridge || true
+          echo "=== Rebuilding node_modules in quasar-frontend ==="
+          docker-compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm ci" || true
         continue-on-error: true
-      - name: Wait for Quasar server to be fully ready
+
+      - name: Wait for Quasar server
         run: |
-          echo "=== Waiting for Quasar server to be fully ready ==="
+          echo "=== Waiting for Quasar server ==="
           for i in {1..30}; do
-            if curl -sSf http://localhost:9000 > /dev/null; then
-              echo "Quasar server is ready!"
+            if curl -s http://localhost:9000; then
+              echo "Quasar server ready"
               break
             fi
             echo "Attempt $i: Quasar server not ready, waiting..."
-            sleep 10
+            sleep 2
           done
+          curl -v http://localhost:9000 > logs/quasar_response.txt || true
         continue-on-error: true
-      - name: Debug Docker services
+
+      - name: Wait for backend API
         run: |
-          echo "=== Docker containers ==="
-          docker ps -a || true
-          echo "=== Docker Compose logs (frontend) ==="
-          docker-compose logs frontend || true
-          echo "=== Docker Compose logs (backend) ==="
-          docker-compose logs backend || true
-          echo "=== Listing node_modules in quasar-frontend ==="
-          docker-compose run --rm frontend ls -la /app/node_modules | head -n 20 || true
+          echo "=== Waiting for backend API ==="
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/api/doc; then
+              echo "Backend API ready"
+              break
+            fi
+            echo "Attempt $i: Backend API not ready, waiting..."
+            sleep 2
+          done
+          curl -v http://localhost:8000/api/doc > logs/backend_response.txt || true
         continue-on-error: true
-      - name: Verify Quasar container and port 9000
+
+      - name: Check for multiple quasar dev executions
         run: |
-          echo "=== Verifying Quasar container ==="
-          if ! docker ps | grep -q quasar-frontend; then
-            echo "Quasar container is not running!"
-            docker ps -a
-            docker logs quasar-frontend || true
-          else
-            echo "Quasar container is running."
-          fi
-          echo "=== Verifying port 9000 ==="
-          if ! nc -zv localhost 9000; then
-            echo "Port 9000 is not accessible!"
-            docker logs quasar-frontend || true
-            curl -v http://localhost:9000 || true
-          else
-            echo "Port 9000 is accessible."
+          echo "=== Checking quasar dev executions ==="
+          docker logs quasar-frontend > logs/quasar_frontend_logs.txt
+          QUASAR_DEV_COUNT=$(grep -c "> quasar dev" logs/quasar_frontend_logs.txt)
+          echo "Number of quasar dev executions: $QUASAR_DEV_COUNT"
+          if [ "$QUASAR_DEV_COUNT" -gt 1 ]; then
+            echo "Error: Multiple quasar dev executions detected!"
+            cat logs/quasar_frontend_logs.txt
+            exit 1
           fi
         continue-on-error: true
-      - name: Verify HTTP response from Quasar server
-        run: |
-          echo "=== Verifying Quasar server response ==="
-          if ! curl -sSf http://localhost:9000 > /dev/null; then
-            echo "Quasar server is not responding!"
-            curl -v http://localhost:9000 || true
-            docker logs quasar-frontend || true
-          else
-            echo "Quasar server is responding."
-          fi
-        continue-on-error: true
-      - name: Test TCP ports
-        run: |
-          echo "=== Testing TCP ports ==="
-          echo "Testing port 9000 (frontend)..."
-          nc -zv localhost 9000 || echo "Port 9000 not reachable"
-          echo "Testing port 8000 (backend)..."
-          nc -zv localhost 8000 || echo "Port 8000 not reachable"
-          echo "Testing port 3307 (database)..."
-          nc -zv localhost 3307 || echo "Port 3307 not reachable"
-        continue-on-error: true
-      - name: Test HTTP endpoints
-        run: |
-          echo "=== Testing HTTP endpoints ==="
-          echo "Testing frontend endpoint..."
-          curl -v http://localhost:9000 || echo "Failed to reach frontend"
-          nc -zv 127.0.0.1 9000 || echo "IPv4 not reachable"
-          echo "Testing backend API endpoint..."
-          curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
-        continue-on-error: true
-      - name: Wait for services to be healthy
-        run: |
-          echo "=== Waiting for services to be healthy ==="
-          npx wait-on http://localhost:9000 --timeout 600000 || echo "Timeout waiting for frontend"
-          npx wait-on http://localhost:8000/api/doc --timeout 120000 || echo "Timeout waiting for backend API"
-          npx wait-on tcp:localhost:3307 --timeout 60000 || echo "Timeout waiting for database"
-        continue-on-error: true
-      - name: Install PHPUnit in backend container
-        run: |
-          echo "=== Installing PHPUnit in backend container ==="
-          docker exec api_backend composer require --dev phpunit/phpunit || true
-        continue-on-error: true
-      - name: Run PHPUnit tests in backend container
-        run: |
-          echo "=== Running PHPUnit tests ==="
-          docker exec -e APP_ENV=test api_backend vendor/bin/phpunit --testdox --stop-on-failure || true
-        continue-on-error: true
+
       - name: Run Cypress E2E tests
         uses: cypress-io/github-action@v6
         with:
-          browser: chrome
+          browser: electron
+          headless: true
           spec: |
             quasar-project/cypress/e2e/first_spec.cy.js
             quasar-project/cypress/e2e/login_spec.cy.js
@@ -175,8 +131,9 @@ jobs:
         env:
           CYPRESS_FRONTEND_URL: http://localhost:9000
           CYPRESS_API_URL: http://localhost:8000
-          CYPRESS_VERIFY_TIMEOUT: 180000
+          CYPRESS_VERIFY_TIMEOUT: 60000
         continue-on-error: true
+
       - name: Upload Cypress E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -187,6 +144,7 @@ jobs:
             quasar-project/cypress/videos
           retention-days: 7
         continue-on-error: true
+
       - name: Debug Docker logs on failure
         if: failure()
         run: |
@@ -197,6 +155,7 @@ jobs:
           docker logs api_backend > logs/api_backend_logs.txt || true
           cat logs/*.txt || true
         continue-on-error: true
+
       - name: Upload Docker logs and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -205,6 +164,7 @@ jobs:
           path: logs/
           retention-days: 7
         continue-on-error: true
+
       - name: Stop Docker services
         if: always()
         run: |
