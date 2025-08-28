@@ -1,4 +1,4 @@
-name: GreenItScan CI Pipeline
+name: GreenITScan CI Pipeline
 on:
   push:
     branches:
@@ -15,7 +15,7 @@ jobs:
       - name: Clean up Docker containers
         run: |
           echo "=== Cleaning up Docker containers ==="
-          docker-compose -f docker-compose.yml down -v --remove-orphans || true
+          docker-compose down -v --remove-orphans || true
           docker system prune -f --volumes || true
         continue-on-error: true
       - name: Setup Node.js
@@ -44,22 +44,44 @@ jobs:
         continue-on-error: true
       - name: Build Docker images
         run: |
-          echo "=== Building Docker images ==="
-          make build
+          echo "=== Rebuilding Docker images ==="
+          docker-compose build --no-cache frontend || true
+          make build || true
         continue-on-error: true
       - name: Debug Docker services before start
         run: |
           echo "=== Docker containers before start ==="
           docker ps -a || true
           echo "=== Docker Compose config ==="
-          docker-compose -f docker-compose.yml config || true
+          docker-compose config || true
           echo "=== Docker Compose logs ==="
-          docker-compose -f docker-compose.yml logs || true
+          docker-compose logs || true
         continue-on-error: true
-      - name: Start Docker services and initialize
+      - name: Start Docker services
         run: |
           echo "=== Starting Docker services ==="
-          make install
+          make install || true
+          echo "=== Waiting for services to stabilize ==="
+          sleep 60
+        continue-on-error: true
+      - name: Initialize test database
+        run: |
+          echo "=== Initializing test database ==="
+          docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
+          docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
+        continue-on-error: true
+      - name: Update and verify dependencies in quasar-frontend container
+        run: |
+          echo "=== Updating dependencies in quasar-frontend ==="
+          docker exec quasar-frontend rm -rf /app/node_modules /app/package-lock.json || true
+          docker exec quasar-frontend npm cache clean --force || true
+          docker exec quasar-frontend npm install quasar@latest @quasar/app-webpack@latest --save-dev || true
+          docker exec quasar-frontend npm install || true
+          echo "=== Verifying installed versions ==="
+          docker exec quasar-frontend npm list quasar @quasar/app-webpack || true
+          docker-compose restart frontend || true
+          echo "=== Waiting for frontend to stabilize ==="
+          sleep 60
         continue-on-error: true
       - name: Initialize test database
         run: |
@@ -85,14 +107,15 @@ jobs:
           echo "=== Docker containers after start ==="
           docker ps -a || true
           echo "=== Docker Compose logs (frontend) ==="
-          docker-compose -f docker-compose.yml logs frontend || true
+          docker-compose logs frontend || true
           echo "=== Docker Compose logs (backend) ==="
-          docker-compose -f docker-compose.yml logs backend || true
+          docker-compose logs backend || true
           echo "=== Listing node_modules in quasar-frontend ==="
           docker exec quasar-frontend ls -la /app/node_modules | head -n 20 || true
         continue-on-error: true
-      - name: Verify Quasar container is running and port 9000 is accessible
+      - name: Verify Quasar container and port 9000
         run: |
+          echo "=== Verifying Quasar container ==="
           if ! docker ps | grep -q quasar-frontend; then
             echo "Quasar container is not running!"
             docker ps -a
@@ -100,6 +123,7 @@ jobs:
           else
             echo "Quasar container is running."
           fi
+          echo "=== Verifying port 9000 ==="
           if ! nc -zv localhost 9000; then
             echo "Port 9000 is not accessible!"
             docker logs quasar-frontend || true
@@ -110,6 +134,7 @@ jobs:
         continue-on-error: true
       - name: Verify HTTP response from Quasar server
         run: |
+          echo "=== Verifying Quasar server response ==="
           if ! curl -sSf http://localhost:9000 > /dev/null; then
             echo "Quasar server is not responding!"
             curl -v http://localhost:9000 || true

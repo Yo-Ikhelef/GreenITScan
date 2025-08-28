@@ -69,7 +69,7 @@ var quasar_config_default = defineConfig((ctx) => {
         chain.resolve.symlinks(false);
         chain.resolve.alias.set('@', path.resolve(__dirname, 'src'));
         chain.resolve.alias.set('vue', path.resolve(__dirname, 'node_modules/vue'));
-      }
+      },
       // rtl: true, // https://quasar.dev/options/rtl-support
       // showProgress: false,
       // gzip: true,
@@ -79,6 +79,9 @@ var quasar_config_default = defineConfig((ctx) => {
       // https://v2.quasar.dev/quasar-cli-webpack/handling-webpack
       // "chain" is a webpack-chain object https://github.com/sorrycc/webpack-chain
       // chainWebpack (/* chain, { isClient, isServer } */) {}
+      env: {
+      DISABLE_SERVE_INDEX: "true"
+    }
     },
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#devserver
     devServer: {
