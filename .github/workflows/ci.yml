@@ -29,7 +29,7 @@ jobs:
         run: |
           echo "=== Installing Make and Docker Compose ==="
           sudo apt-get update
-          sudo apt-get install -y make
+          sudo apt-get install -y make net-tools
           sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
@@ -54,7 +54,7 @@ jobs:
           echo "=== Starting Docker services ==="
           make install || true
           echo "=== Waiting for services to stabilize ==="
-          sleep 60
+          sleep 120
         continue-on-error: true
       - name: Initialize test database
         run: |
@@ -62,31 +62,30 @@ jobs:
           docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
           docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
         continue-on-error: true
-      - name: Fix Quasar frontend container
+      - name: Debug network status
         run: |
-          echo "=== Fixing quasar-frontend container ==="
-          # Vérifier si le conteneur est en cours d'exécution
-          if docker ps | grep -q quasar-frontend; then
-            echo "Quasar container is running, stopping it for cleanup..."
-            docker-compose stop frontend || true
-          fi
-          # Nettoyer node_modules et cache npm
-          docker-compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm cache clean --force" || true
-          # Installer quasar-cli globalement
-          docker-compose run --rm frontend npm install -g quasar-cli@2.5.0 || true
-          # Réinstaller les dépendances
-          docker-compose run --rm frontend npm install || true
-          # Redémarrer le conteneur
-          docker-compose restart frontend || true
-          echo "=== Waiting for frontend to stabilize ==="
-          sleep 60
-          # Vérifier les versions installées
-          echo "=== Verifying installed versions ==="
-          docker-compose run --rm frontend npm list quasar @quasar/app-webpack css-loader vue-router core-js events perfect-debounce form-data postcss-loader webpack webpack-dev-server babel-loader colorette || true
+          echo "=== Network status ==="
+          netstat -tuln || true
+          ping -c 4 localhost || true
+          echo "=== Docker network inspect ==="
+          docker network ls || true
+          docker network inspect bridge || true
         continue-on-error: true
-      - name: Debug Docker services after fix
+      - name: Wait for Quasar server to be fully ready
         run: |
-          echo "=== Docker containers after fix ==="
+          echo "=== Waiting for Quasar server to be fully ready ==="
+          for i in {1..30}; do
+            if curl -sSf http://localhost:9000 > /dev/null; then
+              echo "Quasar server is ready!"
+              break
+            fi
+            echo "Attempt $i: Quasar server not ready, waiting..."
+            sleep 10
+          done
+        continue-on-error: true
+      - name: Debug Docker services
+        run: |
+          echo "=== Docker containers ==="
           docker ps -a || true
           echo "=== Docker Compose logs (frontend) ==="
           docker-compose logs frontend || true
@@ -166,7 +165,7 @@ jobs:
         with:
           browser: chrome
           spec: |
-            quasar-project/cypress/e2e/first.cy.js
+            quasar-project/cypress/e2e/first_spec.cy.js
             quasar-project/cypress/e2e/login_spec.cy.js
             quasar-project/cypress/e2e/questionnaire_page_spec.cy.js
             quasar-project/cypress/e2e/register_user_spec.cy.js
@@ -176,7 +175,7 @@ jobs:
         env:
           CYPRESS_FRONTEND_URL: http://localhost:9000
           CYPRESS_API_URL: http://localhost:8000
-          CYPRESS_VERIFY_TIMEOUT: 60000
+          CYPRESS_VERIFY_TIMEOUT: 180000
         continue-on-error: true
       - name: Upload Cypress E2E artifacts
         if: always()
