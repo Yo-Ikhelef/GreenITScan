@@ -144,12 +144,16 @@ jobs:
       #  working-directory: ./quasar-project
       #  continue-on-error: true
 
-      #- name: Update @quasar/app-webpack
-      #  run: |
-      #    echo "=== Updating @quasar/app-webpack ==="
-      #    npm install @quasar/app-webpack@latest || true
-      #  working-directory: ./quasar-project
-      #  continue-on-error: true
+      - name: Update @quasar/app-webpack
+        run: |
+          echo "=== Updating @quasar/app-webpack ==="
+          npm install @quasar/app-webpack@latest || true
+        working-directory: ./quasar-project
+        continue-on-error: true
+
+      - name: tests
+        run: curl -v http://localhost:9000 || true
+            nc -zv 127.0.0.1 9000 || echo "IPv4 not reachable"
       
       - name: Debug Quasar container logs
         run: docker logs quasar-frontend
@@ -169,6 +173,7 @@ jobs:
         env:
           CYPRESS_FRONTEND_URL: http://localhost:9000
           CYPRESS_API_URL: http://localhost:8000
+          CYPRESS_VERIFY_TIMEOUT: 60000
         continue-on-error: true
       - name: Upload Cypress E2E artifacts
         if: always()
