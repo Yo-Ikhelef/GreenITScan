@@ -6,6 +6,14 @@ on:
   pull_request:
     branches:
       - cicd
+jobs:name: GreenITScan CI Pipeline
+on:
+  push:
+    branches:
+      - cicd
+  pull_request:
+    branches:
+      - cicd
 jobs:
   cypress-e2e:
     runs-on: ubuntu-latest
@@ -24,15 +32,6 @@ jobs:
           node-version: '18.19.1'
           cache: 'npm'
           cache-dependency-path: quasar-project/package-lock.json
-        continue-on-error: true
-      - name: Clean and install dependencies in quasar-project
-        run: |
-          echo "=== Cleaning and installing dependencies ==="
-          rm -rf node_modules package-lock.json || true
-          npm cache clean --force || true
-          npm install quasar@latest @quasar/app-webpack@latest --save-dev || true
-          npm install || true
-        working-directory: ./quasar-project
         continue-on-error: true
       - name: Install Make and Docker Compose
         run: |
@@ -71,29 +70,38 @@ jobs:
           docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
           docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
         continue-on-error: true
-      - name: Update and verify dependencies in quasar-frontend container
+      - name: Fix Quasar frontend container
         run: |
-          echo "=== Updating dependencies in quasar-frontend ==="
-          docker exec quasar-frontend rm -rf /app/node_modules /app/package-lock.json || true
-          docker exec quasar-frontend npm cache clean --force || true
-          docker exec quasar-frontend npm install quasar@latest @quasar/app-webpack@latest --save-dev || true
-          docker exec quasar-frontend npm install || true
-          echo "=== Verifying installed versions ==="
-          docker exec quasar-frontend npm list quasar @quasar/app-webpack || true
+          echo "=== Fixing quasar-frontend container ==="
+          # Vérifier si le conteneur est en cours d'exécution
+          if docker ps | grep -q quasar-frontend; then
+            echo "Quasar container is running, stopping it for cleanup..."
+            docker-compose stop frontend || true
+          fi
+          # Nettoyer node_modules et cache npm
+          docker-compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm cache clean --force" || true
+          # Installer quasar-cli globalement
+          docker-compose run --rm frontend npm install -g quasar-cli@2.5.0 || true
+          # Réinstaller les dépendances
+          docker-compose run --rm frontend npm install || true
+          # Redémarrer le conteneur
           docker-compose restart frontend || true
           echo "=== Waiting for frontend to stabilize ==="
           sleep 60
+          # Vérifier les versions installées
+          echo "=== Verifying installed versions ==="
+          docker-compose run --rm frontend npm list quasar @quasar/app-webpack css-loader vue-router core-js events perfect-debounce form-data postcss-loader webpack webpack-dev-server babel-loader colorette || true
         continue-on-error: true
-      - name: Debug Docker services after start
+      - name: Debug Docker services after fix
         run: |
-          echo "=== Docker containers after start ==="
+          echo "=== Docker containers after fix ==="
           docker ps -a || true
           echo "=== Docker Compose logs (frontend) ==="
           docker-compose logs frontend || true
           echo "=== Docker Compose logs (backend) ==="
           docker-compose logs backend || true
           echo "=== Listing node_modules in quasar-frontend ==="
-          docker exec quasar-frontend ls -la /app/node_modules | head -n 20 || true
+          docker-compose run --rm frontend ls -la /app/node_modules | head -n 20 || true
         continue-on-error: true
       - name: Verify Quasar container and port 9000
         run: |
