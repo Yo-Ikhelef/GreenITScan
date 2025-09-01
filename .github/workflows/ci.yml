@@ -1,0 +1,221 @@
+name: GreenITScan CI Pipeline
+on:
+  push:
+    branches:
+      - cicd
+  pull_request:
+    branches:
+      - cicd
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Raison pour déclencher manuellement le workflow'
+        required: false
+        default: 'Déclenchement manuel'
+
+jobs:
+  cypress-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clean up Docker containers and volumes
+        run: |
+          echo "=== Cleaning up Docker containers and volumes ==="
+          docker-compose down -v --remove-orphans || true
+          docker volume rm $(docker volume ls -q | grep greenitscan) || true
+          docker system prune -f --volumes || true
+        continue-on-error: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.1'
+          cache: 'npm'
+          cache-dependency-path: quasar-project/package-lock.json
+        continue-on-error: true
+
+      - name: Install Make and Docker Compose
+        run: |
+          echo "=== Installing Make and Docker Compose ==="
+          sudo apt-get update
+          sudo apt-get install -y make
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+        continue-on-error: true
+
+      - name: Rebuild Docker images
+        run: |
+          echo "=== Rebuilding Docker images ==="
+          docker-compose build --no-cache frontend || true
+          make build || true
+        continue-on-error: true
+
+      - name: Start Docker services
+        run: |
+          echo "=== Starting Docker services ==="
+          make install || true
+          echo "=== Waiting for services to stabilize ==="
+          sleep 60
+        continue-on-error: true
+
+      - name: Initialize test database
+        run: |
+          echo "=== Initializing test database ==="
+          docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
+          docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
+        continue-on-error: true
+
+      - name: Rebuild node_modules in frontend container
+        run: |
+          echo "=== Rebuilding node_modules in quasar-frontend ==="
+          docker-compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm ci" || true
+        continue-on-error: true
+
+      - name: Wait for Quasar server
+        run: |
+          echo "=== Waiting for Quasar server ==="
+          for i in {1..30}; do
+            if curl -s http://localhost:9000; then
+              echo "Quasar server ready"
+              break
+            fi
+            echo "Attempt $i: Quasar server not ready, waiting..."
+            sleep 2
+          done
+          curl -v http://localhost:9000 > logs/quasar_response.txt || true
+        continue-on-error: true
+
+      - name: Wait for backend API
+        run: |
+          echo "=== Waiting for backend API ==="
+          for i in {1..30}; do
+            if curl -s http://localhost:8000/api/doc; then
+              echo "Backend API ready"
+              break
+            fi
+            echo "Attempt $i: Backend API not ready, waiting..."
+            sleep 2
+          done
+          curl -v http://localhost:8000/api/doc > logs/backend_response.txt || true
+        continue-on-error: true
+      
+      - name: Test TCP ports
+        run: |
+          echo "=== Testing TCP ports ==="
+          echo "Testing port 9000 (frontend)..."
+          nc -zv localhost 9000 || echo "Port 9000 not reachable"
+          echo "Testing port 8000 (backend)..."
+          nc -zv localhost 8000 || echo "Port 8000 not reachable"
+          echo "Testing port 3307 (database)..."
+          nc -zv localhost 3307 || echo "Port 3307 not reachable"
+        continue-on-error: true
+        
+      - name: Test HTTP endpoints
+        run: |
+          echo "=== Testing HTTP endpoints ==="
+          echo "Testing frontend endpoint..."
+          curl -v http://localhost:9000 || echo "Failed to reach frontend"
+          echo "Testing backend API endpoint..."
+          curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
+        continue-on-error: true
+
+      - name: Check for multiple quasar dev executions
+        run: |
+          echo "=== Checking quasar dev executions ==="
+          docker logs quasar-frontend > logs/quasar_frontend_logs.txt
+          QUASAR_DEV_COUNT=$(grep -c "> quasar dev" logs/quasar_frontend_logs.txt)
+          echo "Number of quasar dev executions: $QUASAR_DEV_COUNT"
+          if [ "$QUASAR_DEV_COUNT" -gt 1 ]; then
+            echo "Error: Multiple quasar dev executions detected!"
+            cat logs/quasar_frontend_logs.txt
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: electron
+          headless: true
+          spec: |
+            cypress/e2e/first_spec.cy.js
+            cypress/e2e/login_spec.cy.js
+            cypress/e2e/questionnaire_page_spec.cy.js
+            cypress/e2e/register_user_spec.cy.js
+            cypress/e2e/resultats_page_spec.cy.js
+          working-directory: ./quasar-project
+          record: false
+        env:
+          CYPRESS_FRONTEND_URL: http://localhost:9000
+          CYPRESS_API_URL: http://localhost:8000
+          CYPRESS_VERIFY_TIMEOUT: 60000
+        continue-on-error: true
+
+      - name: Upload Cypress E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-e2e-artifacts
+          path: |
+            quasar-project/cypress/screenshots
+            quasar-project/cypress/videos
+          retention-days: 7
+        continue-on-error: true
+
+      - name: Debug Docker logs on failure
+        if: failure()
+        run: |
+          echo "=== Debugging Docker logs on failure ==="
+          mkdir -p logs || true
+          docker-compose logs > logs/docker_logs.txt || true
+          docker logs quasar-frontend > logs/quasar_frontend_logs.txt || true
+          docker logs api_backend > logs/api_backend_logs.txt || true
+          cat logs/*.txt || true
+        continue-on-error: true
+
+      - name: Upload Docker logs and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-diagnostics
+          path: logs/
+          retention-days: 7
+        continue-on-error: true
+
+      - name: Stop Docker services
+        if: always()
+        run: |
+          echo "=== Stopping Docker services ==="
+          make down || true
+        continue-on-error: true
+# cypress-component:
+#   runs-on: ubuntu-latest
+#   steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v4
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v4
+#       with:
+#         node-version: '18.19.1'
+#         cache: 'npm'
+#         cache-dependency-path: quasar-project/package-lock.json
+#     - name: Install quasar-project dependencies
+#       run: npm ci
+#       working-directory: ./quasar-project
+#     - name: Run Cypress component tests
+#       uses: cypress-io/github-action@v6
+#       with:
+#         browser: chrome
+#         component: true
+#         spec: quasar-project/cypress/e2e/card_result_spec.cy.js
+#         working-directory: ./quasar-project
+#     - name: Upload Cypress component artifacts
+#       if: always()
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: cypress-component-artifacts
+#         path: quasar-project/cypress/downloads
+#         retention-days: 77

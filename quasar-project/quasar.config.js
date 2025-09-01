@@ -1,3 +1,4 @@
+import path from 'path';
 /* eslint-disable */
 /**
  * THIS FILE IS GENERATED AUTOMATICALLY.
@@ -63,7 +64,12 @@ var quasar_config_default = defineConfig((ctx) => {
       esbuildTarget: {
         browser: ["es2022", "firefox115", "chrome115", "safari14"],
         node: "node20"
-      }
+      },
+      chainWebpack(chain) {
+        chain.resolve.symlinks(false);
+        chain.resolve.alias.set('@', path.resolve(__dirname, 'src'));
+        chain.resolve.alias.set('vue', path.resolve(__dirname, 'node_modules/vue'));
+      },
       // rtl: true, // https://quasar.dev/options/rtl-support
       // showProgress: false,
       // gzip: true,
@@ -73,15 +79,24 @@ var quasar_config_default = defineConfig((ctx) => {
       // https://v2.quasar.dev/quasar-cli-webpack/handling-webpack
       // "chain" is a webpack-chain object https://github.com/sorrycc/webpack-chain
       // chainWebpack (/* chain, { isClient, isServer } */) {}
+      env: {
+      DISABLE_SERVE_INDEX: "true"
+    }
     },
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#devserver
     devServer: {
       server: {
         type: "http"
       },
+      port: 9000,
+      host: "0.0.0.0",
       open: true
       // opens browser window automatically
     },
+    static: {
+      serveIndex: false
+    },
+
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#framework
     framework: {
       config: {},
