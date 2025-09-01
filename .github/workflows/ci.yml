@@ -2,10 +2,10 @@ name: GreenITScan CI Pipeline
 on:
   push:
     branches:
-      - cicd
+      - testing-cicd-youri
   pull_request:
     branches:
-      - cicd
+      - testing-cicd-youri
   workflow_dispatch:
     inputs:
       reason:
@@ -20,10 +20,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Prep logs dir
+        run: mkdir -p logs
+
+      - name: Install netcat for port checks
+          run: sudo apt-get update && sudo apt-get install -y netcat-openbsd
+
       - name: Clean up Docker containers and volumes
         run: |
           echo "=== Cleaning up Docker containers and volumes ==="
-          docker-compose down -v --remove-orphans || true
+          docker compose down -v --remove-orphans || true
           docker volume rm $(docker volume ls -q | grep greenitscan) || true
           docker system prune -f --volumes || true
         continue-on-error: true
@@ -36,20 +42,19 @@ jobs:
           cache-dependency-path: quasar-project/package-lock.json
         continue-on-error: true
 
-      - name: Install Make and Docker Compose
+      - name: Install Make and check Docker Compose
         run: |
-          echo "=== Installing Make and Docker Compose ==="
+          echo "=== Installing Make and checking Docker Compose ==="
           sudo apt-get update
           sudo apt-get install -y make
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+          echo "=== Docker Compose version ==="
+          docker compose version
         continue-on-error: true
 
       - name: Rebuild Docker images
         run: |
           echo "=== Rebuilding Docker images ==="
-          docker-compose build --no-cache frontend || true
+          docker compose build --no-cache frontend || true
           make build || true
         continue-on-error: true
 
@@ -61,17 +66,21 @@ jobs:
           sleep 60
         continue-on-error: true
 
-      - name: Initialize test database
+        - name: Docker status
         run: |
-          echo "=== Initializing test database ==="
-          docker exec mariadb_database mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS GreenITScan_test;" || true
-          docker exec api_backend php bin/console doctrine:migrations:migrate --env=test --no-interaction || true
-        continue-on-error: true
+          docker compose ps
+          docker ps -a
+
+
+      - name: Run backend tests (Makefile)
+        run: |
+          echo "=== Running backend tests ==="
+          make test
 
       - name: Rebuild node_modules in frontend container
         run: |
           echo "=== Rebuilding node_modules in quasar-frontend ==="
-          docker-compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm ci" || true
+          docker compose run --rm frontend bash -c "rm -rf /app/node_modules /app/package-lock.json && npm ci" || true
         continue-on-error: true
 
       - name: Wait for Quasar server
@@ -125,7 +134,7 @@ jobs:
       - name: Check for multiple quasar dev executions
         run: |
           echo "=== Checking quasar dev executions ==="
-          docker logs quasar-frontend > logs/quasar_frontend_logs.txt
+          docker compose logs frontend > logs/quasar_frontend_logs.txt
           QUASAR_DEV_COUNT=$(grep -c "> quasar dev" logs/quasar_frontend_logs.txt)
           echo "Number of quasar dev executions: $QUASAR_DEV_COUNT"
           if [ "$QUASAR_DEV_COUNT" -gt 1 ]; then
@@ -170,9 +179,9 @@ jobs:
         run: |
           echo "=== Debugging Docker logs on failure ==="
           mkdir -p logs || true
-          docker-compose logs > logs/docker_logs.txt || true
-          docker logs quasar-frontend > logs/quasar_frontend_logs.txt || true
-          docker logs api_backend > logs/api_backend_logs.txt || true
+          docker compose logs > logs/docker_logs.txt || true
+          docker compose logs frontend > logs/quasar_frontend_logs.txt || true
+          docker compose logs backend > logs/api_backend_logs.txt || true
           cat logs/*.txt || true
         continue-on-error: true
 
