@@ -60,8 +60,6 @@ jobs:
           make install || true
           echo "=== Waiting for services to stabilize ==="
           sleep 60
-        env:
-          API_URL: http://localhost:8000/api
 
       - name: Docker status
         run: |
@@ -121,10 +119,6 @@ jobs:
           curl -v http://localhost:9000 || echo "Failed to reach frontend"
           echo "Testing backend API endpoint..."
           curl -v http://localhost:8000/api/doc || echo "Failed to reach backend API"
-          echo "Testing login endpoint..."
-          curl -v -X POST http://localhost:8000/api/users/login -H "Content-Type: application/json" -d '{"username":"user@example.com","password":"azerty"}' || echo "Failed to reach login endpoint"
-          echo "Checking frontend environment variables..."
-          curl -s http://localhost:9000 | grep -A5 -B5 "window.__ENV__" || echo "No window.__ENV__ found"
 
       - name: Check for multiple quasar dev executions
         run: |
@@ -142,7 +136,7 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           browser: electron
-          headed: false
+          headless: true
           spec: |
             cypress/e2e/first_spec.cy.js
             cypress/e2e/login_spec.cy.js

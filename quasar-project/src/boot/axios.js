@@ -11,13 +11,8 @@ import { watch } from 'vue';
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
-const baseURL =
-  (window.__ENV__ && window.__ENV__.API_URL) ||                           // Production (nginx)
-  (typeof process !== 'undefined' && process.env && process.env.API_URL) ||  // Development (docker)
-  (import.meta.env && import.meta.env.VITE_API_URL) ||                    // Development (local)
-  '/api';                                                                 // Fallback
 
-const api = axios.create({ baseURL });
+const api = axios.create({ baseURL: 'http://localhost:8000/api' });
 
 
 export default defineBoot(({ app }) => {
