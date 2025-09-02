@@ -1,17 +1,24 @@
 # -------- Stage 1: Vendors (prod) --------
 FROM composer:2 AS vendor
 WORKDIR /app
+# 1) Installer sans scripts (bin/console pas encore présent)
 COPY api-backend/composer.json api-backend/composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
+    --no-dev --no-interaction --prefer-dist --no-scripts
+
+# 2) Copier le code, puis optimiser l'autoload
 COPY api-backend/ ./
-RUN composer dump-autoload --no-dev --optimize
+RUN mkdir -p var/cache var/log && chown -R www-data:www-data var
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --no-dev --optimize
 
 # -------- Stage 2: Runtime Nginx + PHP-FPM --------
 FROM php:8.3-fpm-alpine
 WORKDIR /var/www/html
+RUN mkdir -p var && chown -R www-data:www-data var
+
 
 # Nginx + deps PHP (ajoute d'autres ext si besoin)
-RUN apk add --no-cache nginx icu-data-full icu-libs icu-dev \
+RUN apk add --no-cache nginx icu-data-full icu-libs icu-dev openssl \
   && docker-php-ext-install intl pdo_mysql opcache \
   && mkdir -p /run/nginx
 
@@ -19,7 +26,7 @@ RUN apk add --no-cache nginx icu-data-full icu-libs icu-dev \
 COPY --from=vendor /app /var/www/html
 
 # Nginx conf + script de démarrage
-COPY docker-prod/backend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-prod/backend/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker-prod/backend/start.sh /start.sh
 RUN chmod +x /start.sh
 

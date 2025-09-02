@@ -11,8 +11,12 @@ import { watch } from 'vue';
 // good idea to move this instance creation inside of the
 // "export default () => {}" function below (which runs individually
 // for each client)
+const baseURL =
+  (window.__ENV__ && window.__ENV__.API_URL) ||
+  import.meta.env.VITE_API_URL ||
+  '/api';
 
-const api = axios.create({ baseURL: 'http://localhost:8000/api' });
+const api = axios.create({ baseURL });
 
 
 export default defineBoot(({ app }) => {

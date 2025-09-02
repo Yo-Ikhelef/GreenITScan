@@ -6,7 +6,13 @@ services:
     environment:
       APP_ENV: prod
       # Si tu veux tester la DB locale (mêmes valeurs que ton dev):
-      DATABASE_URL: "mysql://root:YourPassword123@database:3306/GreenITScan?charset=utf8mb4"
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SECRET: ${APP_SECRET}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_PASSPHRASE: ${JWT_PASSPHRASE}
+      JWT_PRIVATE_KEY_B64: ${JWT_PRIVATE_KEY_B64}
+      JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64}
     depends_on:
       - database
     ports:
@@ -25,14 +31,14 @@ services:
   database:
     image: mariadb:11.8.2
     environment:
-      MYSQL_ROOT_PASSWORD: "YourPassword123"
-      MYSQL_DATABASE: "GreenITScan"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     ports:
       - "3307:3306"
     volumes:
       - GreenITScan_mariadb_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-pYourPassword123"]
+      test: ["CMD", "mariadb-admin", "ping", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 10
