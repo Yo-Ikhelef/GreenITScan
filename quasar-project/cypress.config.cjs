@@ -7,7 +7,7 @@ module.exports = defineConfig({
     baseUrl: process.env.CYPRESS_FRONTEND_URL || "http://localhost:9000",
     // Ajouter des variables d'environnement pour l'API
     env: {
-      apiUrl: process.env.CYPRESS_API_URL || "http://localhost:8000", // URL par défaut pour le développement local
+      apiUrl: process.env.API_URL || "http://localhost:8000/api", // URL de base de l'API avec /api
     },
     setupNodeEvents(on/*, config*/) {
       on("before:browser:launch", (browser = {}, launchOptions) => {

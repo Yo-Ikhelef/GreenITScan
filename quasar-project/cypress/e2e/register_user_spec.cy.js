@@ -16,12 +16,7 @@ describe('Inscription', () => {
 
   afterEach(() => {
     // Nettoyer l'état après chaque test
-    cy.request({
-      method: 'POST',
-      url: 'http://localhost:8000/api/users/logout', // Updated endpoint
-      failOnStatusCode: false,
-    });
-
+    // Pour JWT, pas besoin d'appel au serveur pour logout
     cy.clearLocalStorage();
     cy.clearCookies();
 
@@ -66,7 +61,7 @@ describe('Inscription', () => {
 
   it('devrait afficher une erreur si l\'inscription échoue (email déjà utilisé)', () => {
     // Intercepter la requête API pour simuler une erreur
-    cy.intercept('POST', 'http://localhost:8000/api/users/register', {
+    cy.intercept('POST', `${Cypress.env('apiUrl')}/users/register`, {
       statusCode: 400,
       body: { error: 'Cet email est déjà utilisé.' },
     }).as('registerRequest');

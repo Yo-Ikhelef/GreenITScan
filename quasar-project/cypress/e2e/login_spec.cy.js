@@ -12,12 +12,8 @@ describe('Connexion', () => {
   });
 
   afterEach(() => {
-    cy.request({
-      method: 'POST',
-      url: 'http://localhost:8000/api/auth/logout',
-      failOnStatusCode: false,
-    });
-
+    // Pour JWT, pas besoin d'appel au serveur pour logout
+    // Il suffit de nettoyer le storage local
     cy.clearLocalStorage();
     cy.clearCookies();
 

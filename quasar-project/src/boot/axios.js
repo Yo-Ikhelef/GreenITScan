@@ -12,10 +12,10 @@ import { watch } from 'vue';
 // "export default () => {}" function below (which runs individually
 // for each client)
 const baseURL =
-  (window.__ENV__ && window.__ENV__.API_URL) ||
-  (import.meta.env && import.meta.env.VITE_API_URL) ||
-  (typeof process !== 'undefined' && process.env && process.env.VITE_API_URL) ||
-  '/api';
+  (window.__ENV__ && window.__ENV__.API_URL) ||                           // Production (nginx)
+  (typeof process !== 'undefined' && process.env && process.env.API_URL) ||  // Development (docker)
+  (import.meta.env && import.meta.env.VITE_API_URL) ||                    // Development (local)
+  '/api';                                                                 // Fallback
 
 const api = axios.create({ baseURL });
 
