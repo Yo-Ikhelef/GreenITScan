@@ -98,7 +98,7 @@ jobs:
               break
             fi
             echo "Attempt $i: Backend API not ready, waiting..."
-            sleep 2
+            sleep 2   
           done
           curl -v http://localhost:8000/api/doc > logs/backend_response.txt || true
       
