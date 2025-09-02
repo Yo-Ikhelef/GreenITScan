@@ -60,6 +60,8 @@ jobs:
           make install || true
           echo "=== Waiting for services to stabilize ==="
           sleep 60
+        env:
+          VITE_API_URL: http://localhost:8000/api
 
       - name: Docker status
         run: |
@@ -136,7 +138,7 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           browser: electron
-          headless: true
+          headed: false
           spec: |
             cypress/e2e/first_spec.cy.js
             cypress/e2e/login_spec.cy.js
