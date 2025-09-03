@@ -27,3 +27,11 @@ services:
     App\Service\Provider\CarbonFactorProvider:
         arguments:
             $jsonPath: '%kernel.project_dir%/config/carbon_factors.json'
+
+
+    App\Controller\RepoAnalyzerController:
+        arguments:
+            $http: '@GuzzleHttp\ClientInterface'
+            $githubToken: '%env(string:TOKEN_GITHUB)%'
+
+    GuzzleHttp\ClientInterface: '@eight_points_guzzle.client.default'

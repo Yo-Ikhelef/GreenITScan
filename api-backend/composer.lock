@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a2333ca155b9a5d8c3e790f18e2cc324",
+    "content-hash": "8871d6549b60aeb6baad3d84bf0ec3a1",
     "packages": [
         {
             "name": "composer/semver",
@@ -1280,6 +1280,78 @@
                 }
             ],
             "time": "2025-03-06T22:45:56+00:00"
+        },
+        {
+            "name": "eightpoints/guzzle-bundle",
+            "version": "v8.5.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/8p/EightPointsGuzzleBundle.git",
+                "reference": "5df72be234fb0e22d2750e7013003968ec373bff"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/8p/EightPointsGuzzleBundle/zipball/5df72be234fb0e22d2750e7013003968ec373bff",
+                "reference": "5df72be234fb0e22d2750e7013003968ec373bff",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^6.5.8|^7.4.5",
+                "guzzlehttp/promises": "^1.5.3|^2.0",
+                "guzzlehttp/psr7": "^1.9.1|^2.5",
+                "php": ">=7.2",
+                "psr/log": "~1.0|~2.0|~3.0",
+                "symfony/expression-language": "~5.0|~6.0|~7.0",
+                "symfony/framework-bundle": "~5.0|~6.0|~7.0",
+                "symfony/stopwatch": "~5.0|~6.0|~7.0"
+            },
+            "require-dev": {
+                "symfony/phpunit-bridge": "~5.0|~6.0|~7.0",
+                "symfony/twig-bundle": "~5.0|~6.0|~7.0",
+                "symfony/var-dumper": "~5.0|~6.0|~7.0",
+                "symfony/yaml": "~5.0|~6.0|~7.0"
+            },
+            "suggest": {
+                "namshi/cuzzle": "Outputs Curl command on profiler's page for debugging purposes"
+            },
+            "type": "symfony-bundle",
+            "autoload": {
+                "psr-4": {
+                    "EightPoints\\Bundle\\GuzzleBundle\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Florian Preusner",
+                    "email": "florian.preusner@8points.de",
+                    "homepage": "https://github.com/florianpreusner"
+                },
+                {
+                    "name": "Community",
+                    "homepage": "https://github.com/8p/GuzzleBundle/contributors"
+                }
+            ],
+            "description": "Integrates Guzzle 6.x, a PHP HTTP Client, into Symfony. Comes with easy and powerful configuration options and optional plugins.",
+            "homepage": "https://github.com/8p/GuzzleBundle",
+            "keywords": [
+                "Guzzle",
+                "bundle",
+                "client",
+                "curl",
+                "http client",
+                "rest",
+                "symfony",
+                "web service"
+            ],
+            "support": {
+                "issues": "https://github.com/8p/EightPointsGuzzleBundle/issues",
+                "source": "https://github.com/8p/EightPointsGuzzleBundle/tree/v8.5.2"
+            },
+            "time": "2025-01-03T09:42:03+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",

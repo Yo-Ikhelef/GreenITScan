@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -9,11 +10,15 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use OpenApi\Attributes as OA;
 
-
 #[Route('/api/github', name: 'github_')]
 #[OA\Tag(name: "Github Repo Analyzer")]
 class RepoAnalyzerController extends AbstractController
 {
+    public function __construct(
+        private readonly ClientInterface $http,
+        private readonly string $githubToken, // inject env(TOKEN_GITHUB) from services.yaml
+    ) {}
+
     #[OA\Post(
         description: "Analyse approfondie d'un dépôt GitHub pour Green IT",
         requestBody: new OA\RequestBody(
@@ -57,8 +62,7 @@ class RepoAnalyzerController extends AbstractController
     #[Route('/api/analyze', name: 'api_analyze', methods: ['POST'])]
     public function analyze(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $githubToken = $_ENV['TOKEN_GITHUB'] ?? '';
+        $data = json_decode($request->getContent(), true) ?? [];
 
         if (!isset($data['repo_url'])) {
             return new JsonResponse(['error' => 'repo_url est requis'], 400);
@@ -72,26 +76,24 @@ class RepoAnalyzerController extends AbstractController
         $owner = $matches[1];
         $repo = $matches[2];
 
-        $client = new \GuzzleHttp\Client();
-
         try {
-            $repoResponse = $client->request('GET', "https://api.github.com/repos/$owner/$repo", [
+            $repoResponse = $this->http->request('GET', "https://api.github.com/repos/$owner/$repo", [
                 'headers' => [
                     'Accept' => 'application/vnd.github.v3+json',
                     'User-Agent' => 'GreenITAnalyzer',
-                    'Authorization' => 'token ' . $githubToken,
+                    'Authorization' => 'token ' . $this->githubToken,
                 ],
             ]);
-            $repoData = json_decode($repoResponse->getBody(), true);
+            $repoData = json_decode($repoResponse->getBody()->getContents(), true);
 
-            $treeResponse = $client->request('GET', "https://api.github.com/repos/$owner/$repo/git/trees/HEAD?recursive=1", [
+            $treeResponse = $this->http->request('GET', "https://api.github.com/repos/$owner/$repo/git/trees/HEAD?recursive=1", [
                 'headers' => [
                     'Accept' => 'application/vnd.github.v3+json',
                     'User-Agent' => 'GreenITAnalyzer',
-                    'Authorization' => 'token ' . $githubToken,
+                    'Authorization' => 'token ' . $this->githubToken,
                 ],
             ]);
-            $treeData = json_decode($treeResponse->getBody(), true);
+            $treeData = json_decode($treeResponse->getBody()->getContents(), true);
             $files = $treeData['tree'] ?? [];
         } catch (GuzzleException $e) {
             return new JsonResponse(['error' => 'Erreur lors de la récupération du dépôt ou des fichiers : ' . $e->getMessage()], 500);
@@ -108,82 +110,75 @@ class RepoAnalyzerController extends AbstractController
         $jsonFiles = array_filter($files, fn($f) => str_ends_with($f['path'], '.json'));
         $jsonContents = [];
         foreach ($jsonFiles as $file) {
-            $contentResponse = $client->request('GET', "https://api.github.com/repos/$owner/$repo/contents/{$file['path']}", [
+            $contentResponse = $this->http->request('GET', "https://api.github.com/repos/$owner/$repo/contents/{$file['path']}", [
                 'headers' => [
                     'Accept' => 'application/vnd.github.v3+json',
                     'User-Agent' => 'GreenITAnalyzer',
-                    'Authorization' => 'token ' . $githubToken,
+                    'Authorization' => 'token ' . $this->githubToken,
                 ],
             ]);
-            $contentData = json_decode($contentResponse->getBody(), true);
-            $decoded = base64_decode($contentData['content']);
-            $jsonContents[$file['path']] = json_decode($decoded, true);
+            $contentData = json_decode($contentResponse->getBody()->getContents(), true);
+            $decoded = base64_decode($contentData['content'] ?? '') ?: '';
+            $jsonContents[$file['path']] = json_decode($decoded, true) ?? [];
         }
 
-        $dependencyAdvices = $this->analyzeDependenciesGreenIT($jsonContents);
-        $heavyFiles = $this->findHeavyFiles($files);
-        $buildScriptAdvices = $this->analyzeBuildScripts($jsonContents);
-
-        $assets = $this->analyzeAssets($files);
-        $readme = $this->checkReadme($files);
-        $workflows = $this->checkWorkflows($files);
-        $co2 = $this->estimateCO2($totalSize);
-        $deepCodeAdvices = $this->deepCodeAnalysis($files, $owner, $repo, $githubToken);
+        $dependencyAdvices   = $this->analyzeDependenciesGreenIT($jsonContents);
+        $heavyFiles          = $this->findHeavyFiles($files);
+        $buildScriptAdvices  = $this->analyzeBuildScripts($jsonContents);
+        $assets              = $this->analyzeAssets($files);
+        $readme              = $this->checkReadme($files);
+        $workflows           = $this->checkWorkflows($files);
+        $co2                 = $this->estimateCO2($totalSize);
+        $deepCodeAdvices     = $this->deepCodeAnalysis($files, $owner, $repo, $this->githubToken);
 
         $report = [
-            'name' => $repoData['name'],
-            'owner' => $repoData['owner']['login'],
-            'description' => $repoData['description'] ?? 'Aucune description',
-            'stars' => $repoData['stargazers_count'] ?? 0,
-            'forks' => $repoData['forks_count'] ?? 0,
-            'open_issues' => $repoData['open_issues_count'] ?? 0,
-            'language' => $repoData['language'] ?? 'Inconnu',
-            'created_at' => date('Y-m-d H:i:s', strtotime($repoData['created_at'])),
-            'updated_at' => date('Y-m-d H:i:s', strtotime($repoData['updated_at'])),
-            'file_count' => $fileCount,
-            'js_file_count' => $jsFiles,
-            'ts_file_count' => $tsFiles,
-            'php_file_count' => $phpFiles,
-            'vue_file_count' => $vueFiles,
-            'eco_config_present' => $ecoConfig > 0,
-            'total_size_bytes' => $totalSize,
-            'heavy_files' => $heavyFiles,
+            'name'              => $repoData['name'] ?? "$owner/$repo",
+            'owner'             => $repoData['owner']['login'] ?? $owner,
+            'description'       => $repoData['description'] ?? 'Aucune description',
+            'stars'             => $repoData['stargazers_count'] ?? 0,
+            'forks'             => $repoData['forks_count'] ?? 0,
+            'open_issues'       => $repoData['open_issues_count'] ?? 0,
+            'language'          => $repoData['language'] ?? 'Inconnu',
+            'created_at'        => isset($repoData['created_at']) ? date('Y-m-d H:i:s', strtotime($repoData['created_at'])) : null,
+            'updated_at'        => isset($repoData['updated_at']) ? date('Y-m-d H:i:s', strtotime($repoData['updated_at'])) : null,
+            'file_count'        => $fileCount,
+            'js_file_count'     => $jsFiles,
+            'ts_file_count'     => $tsFiles,
+            'php_file_count'    => $phpFiles,
+            'vue_file_count'    => $vueFiles,
+            'eco_config_present'=> $ecoConfig > 0,
+            'total_size_bytes'  => $totalSize,
+            'heavy_files'       => $heavyFiles,
             'dependency_advice' => $dependencyAdvices,
-            'build_script_advice' => $buildScriptAdvices,
-            'deep_code_advice' => $deepCodeAdvices,
-            'assets' => $assets,
-            'readme' => $readme,
-            'workflows' => $workflows,
+            'build_script_advice'=> $buildScriptAdvices,
+            'deep_code_advice'  => $deepCodeAdvices,
+            'assets'            => $assets,
+            'readme'            => $readme,
+            'workflows'         => $workflows,
         ];
 
-        // Génère le conseil principal sans concaténer la liste des fichiers
         $greenItAdvices = array_merge(
             $dependencyAdvices,
             $buildScriptAdvices,
             [$this->generateGreenITAdvice($report, $fileCount, $totalSize, $ecoConfig)]
         );
-
-
-        // Puis ajoutez le conseil au rapport
         $report['green_it_advice'] = $greenItAdvices;
 
         $report = array_merge($report, $assets, $readme, $workflows, [
             'co2_estimate_g' => $co2,
         ]);
 
-
-
         $ecoScore = $this->computeEcoScore($report);
-        $report['eco_score'] = $ecoScore['eco_score'];
-        $report['debt_ratio'] = $ecoScore['debt_ratio'];
-        $report['recommendations'] = $ecoScore['recommendations'];
+        $report['eco_score']        = $ecoScore['eco_score'];
+        $report['debt_ratio']       = $ecoScore['debt_ratio'];
+        $report['recommendations']  = $ecoScore['recommendations'];
+
 
         return new JsonResponse([
-            'repository' => $repoUrl,
-            'greenit_report' => $report,
+            'repository'    => $repoUrl,
+            'greenit_report'=> $report,
         ]);
     }
-
 
     // Analyse Green IT des dépendances
     private function analyzeDependenciesGreenIT(array $jsonContents): array
