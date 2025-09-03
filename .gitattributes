@@ -1,0 +1,2 @@
+# Forcer LF pour tous les fichiers shell
+*.sh text eol=lf
