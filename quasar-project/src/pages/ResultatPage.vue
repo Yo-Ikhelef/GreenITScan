@@ -1,22 +1,45 @@
 <template>
   <q-page class="flex flex-center">
-    <CardResult title="Votre empreinte carbone" subtitle="Estimation basée sur vos réponses" :items="resultItems" />
+    <div><CardResult title="Votre empreinte carbone" subtitle="Vos réponses" :items="resultQuestions" :calculResults="simulationStore.result" resultTitle="Résultat"/>
+      <div class="q-mt-xl flex flex-center">
+        <q-btn color="primary" label="Nouveau questionnaire" @click="goToQuestionnaire" unelevated/>
+      </div>
+    </div>  
   </q-page>
 </template>
 
 <script setup>
 import CardResult from 'components/CardResult.vue'
+import { useSimulationStore } from 'src/stores/simulationStore'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 
-const resultItems = [
-  { label: "Emails envoyés", value: 10, icon: "mdi-email" },
-  { label: "Emails avec PJ", value: 2, icon: "mdi-email-fast" },
-  { label: "Requêtes web", value: 50, icon: "mdi-web" },
-  { label: "Streaming vidéo", value: "5 h/semaine", icon: "mdi-youtube" },
-  { label: "Streaming audio", value: "60 min/jour", icon: "mdi-music" },
-  { label: "Visioconférence", value: "3 h/semaine", icon: "mdi-video" },
-  { label: "PC utilisés", value: 1, icon: "mdi-laptop" },
-  { label: "Smartphones", value: 1, icon: "mdi-cellphone" },
-  { label: "Consoles", value: 0, icon: "mdi-gamepad-variant" },
-  { label: "Comptes cloud", value: 2, icon: "mdi-cloud" }
-]
+const simulationStore = useSimulationStore()
+const router = useRouter()
+
+const iconMap = {
+  email: "mdi-email",
+  email_pj: "mdi-email-fast",
+  navigation_web: "mdi-web",
+  streaming_video: "mdi-youtube",
+  streaming_audio: "mdi-music",
+  visioconference: "mdi-video",
+  pc: "mdi-laptop",
+  smartphone: "mdi-cellphone",
+  console: "mdi-gamepad-variant",
+  cloud_service: "mdi-cloud"
+}
+
+// Génère dynamiquement les réponses aux questions
+const resultQuestions = computed(() =>
+  simulationStore.result?.details?.map(detail => ({
+    label: detail.label,
+    value: detail.value,
+    icon: iconMap[detail.key] || "mdi-information"
+  })) || []
+)
+
+function goToQuestionnaire() {
+  router.push({ name: 'questionnaire' })
+}
 </script>
