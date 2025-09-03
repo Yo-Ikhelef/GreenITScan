@@ -12,6 +12,8 @@ services:
     ports:
       - "9000:9000"
     container_name: quasar-frontend
+    environment:
+      - DISABLE_SERVE_INDEX=${DISABLE_SERVE_INDEX}
 
   backend:
     build:
@@ -43,18 +45,6 @@ services:
       timeout: 5s
       retries: 10
     container_name: mariadb_database
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      PMA_HOST: database
-      PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: "YourPassword123"
-    ports:
-      - "8080:80"
-    depends_on:
-      - database
-    container_name: phpmyadmin
 
 volumes:
   GreenITScan_mariadb_data:

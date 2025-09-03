@@ -1,0 +1,248 @@
+Cypress Test Commands Documentation
+This document provides all the commands to run Cypress tests for the Quasar project. It covers running tests in headed and headless modes, with different browsers, specific test files, and in a CI pipeline. The project uses Symfony (backend on http://localhost:8000) and Quasar (frontend on http://localhost:9000), with tests in cypress/e2e/ (e.g., resource_management_spec.cy.js, warranty_projects_spec.cy.js).
+Prerequisites
+Before running tests, ensure:
+
+Node.js (v18 or higher) and npm are installed.
+Cypress is installed:npm install cypress --save-dev
+
+
+Laravel server (API) is running on port 8000:php artisan serve --host=0.0.0.0 --port=8000 &
+
+
+Quasar frontend is running on port 9000 (if served separately):npm run dev
+
+Note: If Laravel serves the Quasar frontend, ensure the frontend routes (e.g., http://localhost:9000/#/login) are accessible.
+Database is set up (e.g., SQLite or MySQL):php artisan migrate --seed
+
+
+Cypress config (cypress.config.js) is set with:const { defineConfig } = require("cypress");
+const fs = require("fs");
+
+module.exports = defineConfig({
+  e2e: {
+    baseUrl: "http://localhost:9000", // Frontend Quasar
+    setupNodeEvents(on, config) {
+      on("before:browser:launch", (browser = {}, launchOptions) => {
+        if (browser.name === "electron") {
+          launchOptions.preferences.fullscreen = false;
+        }
+        return launchOptions;
+      });
+      on("task", {
+        log(message) {
+          console.log(message);
+          return null;
+        },
+        readFileMaybe({ path }) {
+          if (fs.existsSync(path)) {
+            return fs.readFileSync(path, "utf8");
+          }
+          return null;
+        },
+      });
+    },
+    projectId: "8v18h7",
+    specPattern: "cypress/e2e/integration/**/*.cy.{js,jsx,ts,tsx}",
+    supportFile: "cypress/support/e2e.js",
+    downloadsFolder: "cypress/downloads",
+    defaultCommandTimeout: 15000,
+    responseTimeout: 30000,
+    pageLoadTimeout: 60000,
+    video: true,
+  },
+  component: {
+    devServer: {
+      framework: "vue",
+      bundler: "webpack",
+    },
+  },
+});
+
+
+
+Running All Tests
+Headed Mode (Interactive)
+Run all tests with a visible browser window.
+
+Use 'npx cypress open' to open the Cypress Test Runner GUI, then select a browser and tests interactively.
+
+npx cypress run --headed --browser firefox
+
+npx cypress run --headed --browser chrome
+
+npx cypress run --headed --browser electron
+
+npx cypress run --headed --browser edge
+
+
+Headless Mode (Non-Interactive)
+Run all tests without a visible browser, ideal for CI or quick runs.
+
+Electron (default):npx cypress run --browser electron
+
+
+Chrome:npx cypress run --browser chrome
+
+
+Firefox:npx cypress run --browser firefox
+
+
+Edge:npx cypress run --browser edge
+
+
+
+Note: Outputs results to the terminal. Screenshots (cypress/screenshots) and videos (cypress/videos) are saved on failure.
+Running Specific Test Files
+To run a single test file (e.g., warranty_projects_spec.cy.js or resource_management_spec.cy.js).
+Headed Mode
+
+Electron:npx cypress run --browser electron --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+Chrome:npx cypress run --browser chrome --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+Replace warranty_projects_spec.cy.js with the desired test file (e.g., resource_management_spec.cy.js).
+
+Headless Mode
+
+Electron:npx cypress run --browser electron --headless --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+Chrome:npx cypress run --browser chrome --headless --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+
+Note: Use the full path relative to the project root (e.g., cypress/e2e/).
+Running Tests in CI Pipeline
+For CI pipelines (e.g., GitHub Actions, GitLab, Jenkins), use headless mode with Electron or Chrome. Example GitHub Actions config:
+name: Cypress Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install PHP and Composer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y php php-mbstring php-xml php-mysql
+          curl -sS https://getcomposer.org/installer | php
+          mv composer.phar /usr/local/bin/composer
+      - name: Install Dependencies
+        run: |
+          composer install
+          npm install
+      - name: Setup Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan migrate --seed
+      - name: Run Cypress Tests
+        uses: cypress-io/github-action@v5
+        with:
+          browser: electron
+          headless: true
+          start: php artisan serve --host=0.0.0.0 --port=8000
+          wait-on: 'http://localhost:8000'
+          wait-on-timeout: 120
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+      - name: Upload Videos
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-videos
+          path: cypress/videos
+
+CI-Specific Commands
+
+Run all tests:npx cypress run --browser electron --headless
+
+
+Run specific test file:npx cypress run --browser electron --headless --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+
+Debugging Tips
+
+Check Logs: Terminal output or cypress/logs for errors.
+Screenshots: On failure, check cypress/screenshots.
+Videos: Enabled in cypress.config.js (video: true), check cypress/videos.
+Increase Timeouts: If tests timeout in CI, adjust cypress.config.js:defaultCommandTimeout: 15000,
+responseTimeout: 30000,
+pageLoadTimeout: 60000,
+
+
+Webpack Overlay Issue: If <iframe id="webpack-dev-server-client-overlay"> blocks clicks, add in tests:cy.get('body').then(($body) => {
+  if ($body.find('#webpack-dev-server-client-overlay').length) {
+    cy.get('#webpack-dev-server-client-overlay').invoke('remove');
+    cy.log('Iframe Webpack supprimé');
+  }
+});
+
+Or disable in quasar.conf.js:devServer: {
+  client: {
+    overlay: false,
+  },
+}
+
+
+
+Common Issues
+
+Server not running: Ensure php artisan serve --host=0.0.0.0 --port=8000 is up. Frontend should be accessible at http://localhost:9000.
+API vs Frontend Ports:
+API: http://localhost:8000/api/* (handled by cy.intercept()).
+Frontend: http://localhost:9000 (used in cy.visit()).
+
+
+Database errors: Run php artisan migrate --seed to reset DB.
+Timeouts: Add cy.wait(500) before critical actions or increase timeouts.
+Iframe blocking clicks: Use { force: true } or remove the iframe (see above).
+Downloads: For tests involving downloads (e.g., Excel export), check cypress/downloads using the readFileMaybe task.
+
+Example Workflow
+
+Start Symfony server &
+
+
+Start Quasar frontend (if separate):npm run dev
+
+
+Run specific test in headless mode:npx cypress run --browser electron --headless --spec "cypress/e2e/integration/warranty_projects_spec.cy.js"
+
+
+Check results in terminal or cypress/screenshots if failed.
+For CI, push to repo and monitor pipeline logs.
+
+Notes
+
+Tests use http://localhost:9000 for frontend routes (e.g., /#/login, /#/projects/list) and http://localhost:8000 for API calls (e.g., /api/projects).
+Ensure cypress/support/e2e.js handles common errors:Cypress.on('uncaught:exception', (err) => {
+  if (
+    err.message.includes('ResizeObserver loop completed with undelivered notifications') ||
+    err.message.includes('Cannot read properties of undefined (reading \'toLowerCase\')')
+  ) {
+    return false;
+  }F
+  return true;
+});
+
+
+For pipeline, test on a branch before merging to main.
+The downloadsFolder (cypress/downloads) is used for tests involving file downloads (e.g., Excel import/export).
+

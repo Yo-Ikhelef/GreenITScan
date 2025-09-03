@@ -12,8 +12,13 @@ import { watch } from 'vue';
 // "export default () => {}" function below (which runs individually
 // for each client)
 
-const api = axios.create({ baseURL: 'http://localhost:8000/api' });
-
+let api;
+if ((window.__ENV__ && window.__ENV__.API_URL) ) {
+  const baseURL = (window.__ENV__ && window.__ENV__.API_URL) ;
+  api = axios.create({ baseURL });
+} else {
+  api = axios.create({ baseURL: 'http://localhost:8000/api' });
+}
 
 export default defineBoot(({ app }) => {
   const authStore = useAuthStore();
