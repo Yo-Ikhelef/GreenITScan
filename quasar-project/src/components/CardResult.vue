@@ -12,15 +12,51 @@
           </div>
         </div>
       </div>
+      <div class="text-subtitle2 text-center q-mt-xl q-mb-md">{{ resultTitle }}</div>
+      <div class="result-grid">
+        <div v-for="calculResultCard in calculResultsCards" :key="calculResultCard.label" class="result-item">
+          <q-icon :name="calculResultCard.icon" size="32px" class="q-mr-sm icon" />
+          <div>
+            <div class="result-label">{{ calculResultCard.label }}</div>
+            <div class="result-value">{{ calculResultCard.value }}</div>
+          </div>
+        </div>
+      </div>
     </q-card-section>
   </q-card>
 </template>
 
 <script setup>
-defineProps({
+
+import { computed } from 'vue'
+
+const props = defineProps({
   title: String,
   subtitle: String,
-  items: Array // [{ label, value, icon, color }]
+  items: Array, // [{ label, value, icon, color }]
+  calculResults: Object,
+  resultTitle: String
+})
+
+const calculResultsCards = computed(() => {
+  if (!props.calculResults) return []
+  return [
+    {
+      label: 'Total CO₂ (kg)',
+      value: props.calculResults.totalKg,
+      icon: 'mdi-cloud'
+    },
+    {
+      label: 'Équivalent arbres',
+      value: props.calculResults.treeEquivalent,
+      icon: 'mdi-pine-tree'
+    },
+    {
+      label: 'Équivalent km voiture',
+      value: props.calculResults.carKmEquivalent,
+      icon: 'mdi-car'
+    }
+  ]
 })
 </script>
 
@@ -57,13 +93,14 @@ defineProps({
 
 .result-label {
   font-size: 1rem;
+  font-weight: bold;
   color: #fff;
 }
 
 .result-value {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #1E2438;
+  color: #fff;
 }
 
 .text-h5 {
@@ -72,9 +109,5 @@ defineProps({
 
 .text-subtitle2 {
   color: #b0bec5;
-}
-
-.icon {
-  color: #b0bec5
 }
 </style>
