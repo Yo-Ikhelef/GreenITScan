@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore.js'
 import { watch } from 'vue';
 
 
+
 // Be careful when using SSR for cross-request state pollution
 // due to creating a Singleton instance here;
 // If any client changes this (global) instance, it might be a
@@ -12,7 +13,12 @@ import { watch } from 'vue';
 // "export default () => {}" function below (which runs individually
 // for each client)
 
-const api = axios.create({ baseURL: 'http://localhost:8000/api' });
+const baseURL = (window.__ENV__ && window.__ENV__.API_URL) || import.meta.env.VITE_API_URL || '/api';
+
+
+const api = axios.create({ baseURL });
+
+// const api = axios.create({ baseURL: 'http://localhost:8000/api' });
 
 
 export default defineBoot(({ app }) => {
