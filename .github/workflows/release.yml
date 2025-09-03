@@ -1,0 +1,89 @@
+name: Build & Push images (GHCR)
+
+on:
+  push:
+    branches: [ "prod-config" ]
+    paths:
+      - "docker-prod/**"
+      - "api-backend/**"
+      - "quasar-project/**"
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image names/tags
+        id: vars
+        shell: bash
+        run: |
+          echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+          echo "REPO=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+
+          # Images (même arbo que ton ancien workflow)
+          echo "IMG_BACKEND=ghcr.io/${OWNER_LC}/${REPO}/backend" >> $GITHUB_ENV
+          echo "IMG_FRONTEND=ghcr.io/${OWNER_LC}/${REPO}/frontend" >> $GITHUB_ENV
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "IS_RELEASE=true" >> $GITHUB_ENV
+            echo "TAG1_BACK=${IMG_BACKEND}:${VERSION}" >> $GITHUB_ENV
+            echo "TAG2_BACK=${IMG_BACKEND}:latest" >> $GITHUB_ENV
+            echo "TAG1_FRONT=${IMG_FRONTEND}:${VERSION}" >> $GITHUB_ENV
+            echo "TAG2_FRONT=${IMG_FRONTEND}:latest" >> $GITHUB_ENV
+          else
+            SHORT_SHA="${GITHUB_SHA::7}"
+            SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')
+            echo "IS_RELEASE=false" >> $GITHUB_ENV
+            echo "TAG1_BACK=${IMG_BACKEND}:sha-${SHORT_SHA}" >> $GITHUB_ENV
+            echo "TAG2_BACK=${IMG_BACKEND}:branch-${SAFE_BRANCH}" >> $GITHUB_ENV
+            echo "TAG1_FRONT=${IMG_FRONTEND}:sha-${SHORT_SHA}" >> $GITHUB_ENV
+            echo "TAG2_FRONT=${IMG_FRONTEND}:branch-${SAFE_BRANCH}" >> $GITHUB_ENV
+          fi
+
+      # Backend
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker-prod/backend/Dockerfile.symfony
+          push: true
+          tags: |
+            ${{ env.TAG1_BACK }}
+            ${{ env.TAG2_BACK }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      # Frontend
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker-prod/frontend/Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ env.TAG1_FRONT }}
+            ${{ env.TAG2_FRONT }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max

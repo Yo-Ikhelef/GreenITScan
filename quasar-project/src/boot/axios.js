@@ -13,6 +13,7 @@ import { watch } from 'vue';
 // for each client)
 
 let api;
+
 if ((window.__ENV__ && window.__ENV__.API_URL) ) {
   const baseURL = (window.__ENV__ && window.__ENV__.API_URL) ;
   api = axios.create({ baseURL });
