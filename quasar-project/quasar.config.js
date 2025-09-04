@@ -34,7 +34,7 @@ var quasar_config_default = defineConfig((ctx) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
-    boot: [],
+    boot: ['axios',],
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-file#css
     css: ["app.scss"],
     // https://github.com/quasarframework/quasar/tree/dev/extras
