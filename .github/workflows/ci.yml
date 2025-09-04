@@ -2,10 +2,10 @@ name: GreenITScan CI Pipeline
 on:
   push:
     branches:
-      - testing-cicd-youri
+      - testing-cicd-youri, main
   pull_request:
     branches:
-      - testing-cicd-youri
+      - testing-cicd-youri, main
   workflow_dispatch:
     inputs:
       reason:
