@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { api } from 'boot/axios'
+import { api } from 'boot/axios.js'
 
 export const useSimulationStore = defineStore('simulation', {
   state: () => ({
@@ -10,6 +10,7 @@ export const useSimulationStore = defineStore('simulation', {
 
   actions: {
     async submitSimulation(payload) {
+     // console.log('Soumission de la simulation avec données:', payload);
       this.loading = true
       this.error = null
       try {
