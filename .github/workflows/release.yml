@@ -35,30 +35,55 @@ jobs:
       - name: Compute image names/tags
         id: vars
         shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}          # Owner/Repo
+          OWNER: ${{ github.repository_owner }}         # Owner
         run: |
-          echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
-          echo "REPO=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+          set -euo pipefail
 
-          # Images (même arbo que ton ancien workflow)
-          echo "IMG_BACKEND=ghcr.io/${OWNER_LC}/${REPO}/backend" >> $GITHUB_ENV
-          echo "IMG_FRONTEND=ghcr.io/${OWNER_LC}/${REPO}/frontend" >> $GITHUB_ENV
+          OWNER_LC="${OWNER,,}"
+          REPO_RAW="${REPOSITORY#*/}"
+          REPO_LC="${REPO_RAW,,}"
 
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            VERSION="${GITHUB_REF#refs/tags/}"
-            echo "IS_RELEASE=true" >> $GITHUB_ENV
-            echo "TAG1_BACK=${IMG_BACKEND}:${VERSION}" >> $GITHUB_ENV
-            echo "TAG2_BACK=${IMG_BACKEND}:latest" >> $GITHUB_ENV
-            echo "TAG1_FRONT=${IMG_FRONTEND}:${VERSION}" >> $GITHUB_ENV
-            echo "TAG2_FRONT=${IMG_FRONTEND}:latest" >> $GITHUB_ENV
+          # Images complètes (tout en lowercase)
+          IMG_BACKEND="ghcr.io/${OWNER_LC}/${REPO_LC}/backend"
+          IMG_FRONTEND="ghcr.io/${OWNER_LC}/${REPO_LC}/frontend"
+
+          # Branch safe (lowercase + caractères autorisés), sans tirets en bord
+          SAFE_BRANCH=$(printf %s "$REF_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-' | sed 's/^-*//; s/-*$//')
+          SHORT_SHA="${SHA::7}"
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            VERSION="$REF_NAME"
+            TAG1_BACK="${IMG_BACKEND}:${VERSION}"
+            TAG2_BACK="${IMG_BACKEND}:latest"
+            TAG1_FRONT="${IMG_FRONTEND}:${VERSION}"
+            TAG2_FRONT="${IMG_FRONTEND}:latest"
           else
-            SHORT_SHA="${GITHUB_SHA::7}"
-            SAFE_BRANCH=$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')
-            echo "IS_RELEASE=false" >> $GITHUB_ENV
-            echo "TAG1_BACK=${IMG_BACKEND}:sha-${SHORT_SHA}" >> $GITHUB_ENV
-            echo "TAG2_BACK=${IMG_BACKEND}:branch-${SAFE_BRANCH}" >> $GITHUB_ENV
-            echo "TAG1_FRONT=${IMG_FRONTEND}:sha-${SHORT_SHA}" >> $GITHUB_ENV
-            echo "TAG2_FRONT=${IMG_FRONTEND}:branch-${SAFE_BRANCH}" >> $GITHUB_ENV
+            TAG1_BACK="${IMG_BACKEND}:sha-${SHORT_SHA}"
+            TAG2_BACK="${IMG_BACKEND}:branch-${SAFE_BRANCH}"
+            TAG1_FRONT="${IMG_FRONTEND}:sha-${SHORT_SHA}"
+            TAG2_FRONT="${IMG_FRONTEND}:branch-${SAFE_BRANCH}"
           fi
+
+          {
+            echo "OWNER_LC=$OWNER_LC"
+            echo "REPO=$REPO_LC"
+            echo "IMG_BACKEND=$IMG_BACKEND"
+            echo "IMG_FRONTEND=$IMG_FRONTEND"
+            echo "TAG1_BACK=$TAG1_BACK"
+            echo "TAG2_BACK=$TAG2_BACK"
+            echo "TAG1_FRONT=$TAG1_FRONT"
+            echo "TAG2_FRONT=$TAG2_FRONT"
+          } >> "$GITHUB_ENV"
+
+          echo "::notice::IMG_BACKEND=$IMG_BACKEND"
+          echo "::notice::TAGS_BACK=$TAG1_BACK , $TAG2_BACK"
+          echo "::notice::IMG_FRONTEND=$IMG_FRONTEND"
+          echo "::notice::TAGS_FRONT=$TAG1_FRONT , $TAG2_FRONT"
 
       # Backend
       - name: Build & push backend
