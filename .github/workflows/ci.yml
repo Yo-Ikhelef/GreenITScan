@@ -2,10 +2,10 @@ name: GreenITScan CI Pipeline
 on:
   push:
     branches:
-      - [main]
+      - main
   pull_request:
     branches:
-      - [main]
+      - main
   workflow_dispatch:
     inputs:
       reason:
