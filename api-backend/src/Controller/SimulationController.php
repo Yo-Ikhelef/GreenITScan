@@ -138,4 +138,25 @@ class SimulationController extends AbstractController
 
         return $this->json($normalizer->normalize($simulation));
     }
+
+    #[Route('/test', name: 'test', methods: ['GET'])]
+    #[OA\Get(
+        summary: 'Endpoint de test',
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Message de test',
+                content: new OA\JsonContent(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'wesh alors')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function test(): JsonResponse
+    {
+        return $this->json(['message' => 'wesh alors']);
+    }
 }
