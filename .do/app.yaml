@@ -9,13 +9,11 @@ ingress:
       name: yo-ikhelef-greenitscan-backend
       preserve_path_prefix: true
     match:
-      authority: {}
       path:
         prefix: /api
   - component:
       name: yo-ikhelef-greenitscan-frontend
     match:
-      authority: {}
       path:
         prefix: /
 name: green-it-scan-app
@@ -82,3 +80,22 @@ services:
   instance_count: 1
   instance_size_slug: apps-s-1vcpu-1gb
   name: yo-ikhelef-greenitscan-frontend
+jobs:
+  - name: migrations
+    kind: PRE_DEPLOY
+    image:
+      registry: yo-ikhelef
+      registry_type: GHCR
+      repository: greenitscan/backend
+      tag: branch-prod
+    run_command: >
+      sh -lc "php bin/console doctrine:migrations:migrate --no-interaction"
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      - key: APP_ENV
+        value: prod
+        scope: RUN_TIME
+      - key: DATABASE_URL
+        type: SECRET
+        scope: RUN_TIME
