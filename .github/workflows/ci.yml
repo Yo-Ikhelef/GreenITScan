@@ -179,10 +179,3 @@ jobs:
         run: |
           echo "=== Stopping Docker services ==="
           make down || true
-
-  required:
-    name: required
-    runs-on: ubuntu-latest
-    needs: [ cypress-e2e ]      # ajoute ici tous les jobs qui doivent être verts
-    steps:
-      - run: echo "all green"
