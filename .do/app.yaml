@@ -18,33 +18,51 @@ ingress:
         prefix: /
 name: green-it-scan-app
 region: fra
-envs:
-  - key: APP_ENV
-    value: prod
-    scope: RUN_TIME
-  - key: DATABASE_URL
-    type: SECRET
-    scope: RUN_TIME
-  - key: APP_SECRET
-    type: SECRET
-    scope: RUN_TIME
-  - key: JWT_SECRET_KEY
-    type: SECRET
-    scope: RUN_TIME
-  - key: JWT_PUBLIC_KEY
-    type: SECRET
-    scope: RUN_TIME
-  - key: JWT_PASSPHRASE
-    type: SECRET
-    scope: RUN_TIME
-  - key: JWT_PRIVATE_KEY_B64
-    type: SECRET
-    scope: RUN_TIME
-  - key: JWT_PUBLIC_KEY_B64
-    type: SECRET
-    scope: RUN_TIME
 services:
-- http_port: 8080
+- envs:
+  - key: APP_ENV
+    scope: RUN_AND_BUILD_TIME
+    value: prod
+  - key: APP_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: JWT_SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: JWT_PUBLIC_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: JWT_PASSPHRASE
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: JWT_PRIVATE_KEY_B64
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: JWT_PUBLIC_KEY_B64
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: MYSQL_ROOT_PASSWORD
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: MYSQL_DATABASE
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: OWNER_LC
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: REPO_LC
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: BACK_TAG
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  - key: FRONT_TAG
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+  http_port: 8080
   image:
     registry: yo-ikhelef
     registry_type: GHCR
@@ -62,15 +80,4 @@ services:
   instance_count: 1
   instance_size_slug: apps-s-1vcpu-1gb
   name: yo-ikhelef-greenitscan-frontend
-jobs:
-  - name: migrations
-    kind: PRE_DEPLOY
-    image:
-      registry: yo-ikhelef
-      registry_type: GHCR
-      repository: greenitscan/backend
-      tag: branch-prod
-    run_command: >
-      sh -lc "php bin/console doctrine:migrations:migrate --no-interaction"
-    instance_count: 1
-    instance_size_slug: apps-s-1vcpu-1gb
+  
