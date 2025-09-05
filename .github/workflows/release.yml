@@ -32,23 +32,34 @@ jobs:
           set -euo pipefail
 
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
-          REPO_LC="${GITHUB_REPOSITORY#*/}"
-          REPO_LC="${REPO_LC,,}"
+          REPO_LC="${GITHUB_REPOSITORY#*/}"; REPO_LC="${REPO_LC,,}"
 
-          # Doit matcher ton app.yaml (repositories DO) :
           IMG_BACKEND="ghcr.io/${OWNER_LC}/${REPO_LC}/backend"
           IMG_FRONTEND="ghcr.io/${OWNER_LC}/${REPO_LC}/frontend"
 
           SHORT_SHA="${GITHUB_SHA::7}"
           STABLE_TAG="branch-prod"
 
+          # Définir d'abord les variables locales
+          TAG1_BACK="${IMG_BACKEND}:sha-${SHORT_SHA}"
+          TAG2_BACK="${IMG_BACKEND}:${STABLE_TAG}"
+          TAG1_FRONT="${IMG_FRONTEND}:sha-${SHORT_SHA}"
+          TAG2_FRONT="${IMG_FRONTEND}:${STABLE_TAG}"
+
+          # Logs (optionnels)
+          echo "::notice::IMG_BACKEND=$IMG_BACKEND"
+          echo "::notice::TAGS_BACK=$TAG1_BACK , $TAG2_BACK"
+          echo "::notice::IMG_FRONTEND=$IMG_FRONTEND"
+          echo "::notice::TAGS_FRONT=$TAG1_FRONT , $TAG2_FRONT"
+
+          # Puis export pour les steps suivants
           {
             echo "IMG_BACKEND=$IMG_BACKEND"
             echo "IMG_FRONTEND=$IMG_FRONTEND"
-            echo "TAG1_BACK=${IMG_BACKEND}:sha-${SHORT_SHA}"
-            echo "TAG2_BACK=${IMG_BACKEND}:${STABLE_TAG}"
-            echo "TAG1_FRONT=${IMG_FRONTEND}:sha-${SHORT_SHA}"
-            echo "TAG2_FRONT=${IMG_FRONTEND}:${STABLE_TAG}"
+            echo "TAG1_BACK=$TAG1_BACK"
+            echo "TAG2_BACK=$TAG2_BACK"
+            echo "TAG1_FRONT=$TAG1_FRONT"
+            echo "TAG2_FRONT=$TAG2_FRONT"
           } >> "$GITHUB_ENV"
 
           echo "::notice::IMG_BACKEND=$IMG_BACKEND"
