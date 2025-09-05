@@ -1,0 +1,106 @@
+name: Build & Push images (GHCR)
+
+on:
+  workflow_run:
+    workflows: ["GreenITScan CI Pipeline"]   # <- "name:" EXACT de ta CI
+    branches: [ prod ]
+    types: [ completed ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Compute image names/tags
+        id: vars
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}          # Owner/Repo
+          OWNER: ${{ github.repository_owner }}         # Owner
+        run: |
+          set -euo pipefail
+
+          OWNER_LC="${OWNER,,}"
+          REPO_RAW="${REPOSITORY#*/}"
+          REPO_LC="${REPO_RAW,,}"
+
+          # Images complètes (tout en lowercase)
+          IMG_BACKEND="ghcr.io/${OWNER_LC}/${REPO_LC}/backend"
+          IMG_FRONTEND="ghcr.io/${OWNER_LC}/${REPO_LC}/frontend"
+
+          # Branch safe (lowercase + caractères autorisés), sans tirets en bord
+          SAFE_BRANCH=$(printf %s "$REF_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-' | sed 's/^-*//; s/-*$//')
+          SHORT_SHA="${SHA::7}"
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            VERSION="$REF_NAME"
+            TAG1_BACK="${IMG_BACKEND}:${VERSION}"
+            TAG2_BACK="${IMG_BACKEND}:latest"
+            TAG1_FRONT="${IMG_FRONTEND}:${VERSION}"
+            TAG2_FRONT="${IMG_FRONTEND}:latest"
+          else
+            TAG1_BACK="${IMG_BACKEND}:sha-${SHORT_SHA}"
+            TAG2_BACK="${IMG_BACKEND}:branch-${SAFE_BRANCH}"
+            TAG1_FRONT="${IMG_FRONTEND}:sha-${SHORT_SHA}"
+            TAG2_FRONT="${IMG_FRONTEND}:branch-${SAFE_BRANCH}"
+          fi
+
+          {
+            echo "OWNER_LC=$OWNER_LC"
+            echo "REPO=$REPO_LC"
+            echo "IMG_BACKEND=$IMG_BACKEND"
+            echo "IMG_FRONTEND=$IMG_FRONTEND"
+            echo "TAG1_BACK=$TAG1_BACK"
+            echo "TAG2_BACK=$TAG2_BACK"
+            echo "TAG1_FRONT=$TAG1_FRONT"
+            echo "TAG2_FRONT=$TAG2_FRONT"
+          } >> "$GITHUB_ENV"
+
+          echo "::notice::IMG_BACKEND=$IMG_BACKEND"
+          echo "::notice::TAGS_BACK=$TAG1_BACK , $TAG2_BACK"
+          echo "::notice::IMG_FRONTEND=$IMG_FRONTEND"
+          echo "::notice::TAGS_FRONT=$TAG1_FRONT , $TAG2_FRONT"
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker-prod/backend/Dockerfile.symfony
+          push: true
+          tags: |
+            ${{ env.TAG1_BACK }}
+            ${{ env.TAG2_BACK }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker-prod/frontend/Dockerfile.frontend
+          push: true
+          tags: |
+            ${{ env.TAG1_FRONT }}
+            ${{ env.TAG2_FRONT }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
