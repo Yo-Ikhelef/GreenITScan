@@ -18,8 +18,7 @@ ingress:
         prefix: /
 name: green-it-scan-app
 region: fra
-services:
-- envs:
+envs:
   - key: APP_ENV
     scope: RUN_AND_BUILD_TIME
     value: prod
@@ -62,7 +61,8 @@ services:
   - key: FRONT_TAG
     scope: RUN_AND_BUILD_TIME
     type: SECRET
-  http_port: 8080
+services:
+- http_port: 8080
   image:
     registry: yo-ikhelef
     registry_type: GHCR

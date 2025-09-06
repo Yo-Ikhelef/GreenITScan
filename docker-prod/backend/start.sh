@@ -31,7 +31,7 @@ find /var/www/html/var -type d -exec chmod 0775 {} \;
 find /var/www/html/var -type f -exec chmod 0664 {} \;
 
 # (Important) warmup en tant que FPM_USER pour éviter tout "root-owned"
-su -s /bin/sh -c 'php -d opcache.enable=0 bin/console cache:clear --no-warmup --env=prod && php -d opcache.enable=0 bin/console cache:warmup --env=prod' "$FPM_USER"
+gosu "$FPM_USER" sh -lc 'php -d opcache.enable=0 bin/console cache:clear --no-warmup --env=prod && php -d opcache.enable=0 bin/console cache:warmup --env=prod'
 
 # --- Démarrage des services ---
 php-fpm -D
