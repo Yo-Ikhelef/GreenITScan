@@ -19,7 +19,7 @@ ingress:
 name: green-it-scan-app
 region: fra
 envs:
-  - key: APP_ENV
+  - key: APP_ENV 
     scope: RUN_AND_BUILD_TIME
     value: prod
   - key: APP_SECRET
