@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Deploy to DigitalOcean App Platform (pinned SHA)
 
 on:
   workflow_run:
@@ -12,12 +12,53 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'prod' }}
+    if: >
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'prod'
+      }}
     runs-on: ubuntu-latest
+    environment:
+      name: production
+
     steps:
-      - uses: digitalocean/action-doctl@v2
+      # Checkout pas strictement nécessaire, mais utile pour afficher/archiver le YAML patché
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DO_API_TOKEN }}
 
-      - name: Trigger redeploy with current spec (no spec file)
-        run: doctl apps create-deployment ${{ secrets.DO_APP_ID }}
+      - name: Get remote spec from DO
+        run: doctl apps spec get ${{ secrets.DO_APP_ID }} > .do/remote.yaml
+
+      - name: Patch image tags to this commit SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          SHORT="${SHA:0:7}"
+          echo "Patching image tags to sha-$SHORT"
+
+          # On ne modifie QUE les lignes tag: qui suivent les repositories backend/frontend
+          awk -v s="sha-${SHORT}" '
+            /repository: *.*greenitscan\/backend/  { print; getline; sub(/tag:.*/, "tag: " s); print; next }
+            /repository: *.*greenitscan\/frontend/ { print; getline; sub(/tag:.*/, "tag: " s); print; next }
+            { print }
+          ' .do/remote.yaml > .do/remote.patched.yaml
+
+          echo "==== After patch ===="
+          grep -nE 'repository:.*greenitscan/(backend|frontend)|tag:' .do/remote.patched.yaml || true
+
+      - name: Validate patched spec
+        run: doctl apps spec validate .do/remote.patched.yaml
+
+      - name: Update app (deploy pinned SHA)
+        run: doctl apps update ${{ secrets.DO_APP_ID }} --spec .do/remote.patched.yaml
+
+      # Optionnel: montrer le dernier déploiement
+      - name: Show last deployment
+        run: doctl apps list-deployments ${{ secrets.DO_APP_ID }} --limit 1
