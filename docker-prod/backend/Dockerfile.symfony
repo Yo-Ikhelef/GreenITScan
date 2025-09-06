@@ -18,7 +18,7 @@ RUN mkdir -p var && chown -R www-data:www-data var
 
 
 # Nginx + deps PHP (ajoute d'autres ext si besoin)
-RUN apk add --no-cache nginx icu-data-full icu-libs icu-dev openssl \
+RUN apk add --no-cache nginx icu-data-full icu-libs icu-dev openssl su-exec \
   && docker-php-ext-install intl pdo_mysql opcache \
   && mkdir -p /run/nginx
 

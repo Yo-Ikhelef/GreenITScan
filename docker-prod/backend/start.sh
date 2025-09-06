@@ -49,7 +49,7 @@ if [ "${DEBUG_ENV:-0}" = "1" ]; then
   done
 
   echo "[debug] Env inside FPM user"
-  su "$FPM_USER" sh -lc '
+  su-exec "$FPM_USER" sh -lc '
     if [ -n "${DATABASE_URL:-}" ]; then
       MASKED_DB=$(printf "%s" "$DATABASE_URL" | sed -E "s#(://[^:]+):[^@]+@#\1:***@#")
       echo "[debug-su] DATABASE_URL=$MASKED_DB"
@@ -69,7 +69,7 @@ fi
 
 
 # (Important) warmup en tant que FPM_USER pour éviter tout "root-owned"
-su "$FPM_USER" sh -lc 'php -d opcache.enable=0 bin/console cache:clear --no-warmup --env=prod && php -d opcache.enable=0 bin/console cache:warmup --env=prod'
+su-exec "$FPM_USER" sh -lc 'php -d opcache.enable=0 bin/console cache:clear --no-warmup --env=prod && php -d opcache.enable=0 bin/console cache:warmup --env=prod'
 
 # --- Démarrage des services ---
 php-fpm -D
