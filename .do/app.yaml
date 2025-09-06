@@ -1,6 +1,62 @@
 alerts:
 - rule: DEPLOYMENT_FAILED
 - rule: DOMAIN_FAILED
+envs:
+- key: APP_ENV
+  scope: RUN_AND_BUILD_TIME
+  value: prod
+- key: APP_SECRET
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:D4Woa5rz9/PeF6xbFbP+5P7dlkqFicWe:ElJ4yqpRyZjgcVfSwO61mrTeR/sacQr8Kqo5Qw8lQmrkaUVawS+WHOGU751TepE+]
+- key: DATABASE_URL
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:JI1UxCnrudfEAOJ9CwlszYuYo0riF05q:Nswb+MiErk+b9INTuT7Io4xLKAoSAhZ9My2/BNKDs2vgR6iRDXhfeXGJe8mutL9Mcy+UCFixvVZdowXSeyyVlbiju/InENoBSCezSwiQEU2RxOhJuZp/aDcaeRadC7QlKErDLn61SjjnvUN94i+S2ak5oL+oaOSF9t8llE1ggJLHoqMvG2u2lD5P9695JFtYUpt0kEbH8dAtHujCUBnop6Ja9tnGCWgW+dS/3zDmR8/7MV654wRrQSIHBeM=]
+- key: JWT_SECRET_KEY
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:8/kJhEK/QlnpTRznl3m7XD1oZv7TB3iG:cVA5Kwamj4ZgdKFmYEVRBrXZ30DEFfalbCv6ACoXRbYrt+A10tvVtWOn4srQViX4oBtPfrAFhYLt6x8=]
+- key: JWT_PUBLIC_KEY
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:jwD5HGUFwlP/unSLTgIWkxgMGTPzR9Dr:HF1iySyTKACsQJYDFcr6Hbjt8YtE3xcC/bkcCrzjvTNfnfZv3okmOCJwhfhmGH/lexW/EyMqMHVZhQ==]
+- key: JWT_PASSPHRASE
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:x1jorgL+j7w4CRTPa2hrGtIO2ma0cimQ:fS+1Gj55kKXfvJ10l7jqjgPpzKEakmtDKtBYvctUY9Iskmb5vLVlAGpgpPtAnHM5zQKGkXDN9vRygeoCw560Gv+f1V0Cv7FvmQYSPSOXAmI=]
+- key: JWT_PRIVATE_KEY_B64
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:eq3x7Z+q6iqa21+deuJEPFF4QkRJWTG3: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]
+- key: JWT_PUBLIC_KEY_B64
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:RSdtHhzSmXzqJm6n/HcWe6QooWPIMwoh:Wiox4pHfJ6E+cLbdOoE+/8TlADJt+GjJ7y8OABRlDyu7yxYz3xatryefXwy+WuopQdu9LdL77xlKG6nAQqTlluDz019G7f7kc4MCDAymAeYeuF9OVdPsXhugpnDD90SyhiTGt85HcRd2pwAUwTakO8bTqDn/OgxDQ0HEW7pkXoEasG3ifcBmwCgimmp+yXtYBIGh25Ju7uycSlEJSekHAyjs0Z0yPKA3qbgBniuvwrJGA8jCVWQ3PC0q0omWrqjNPH2ml2MVfsv28tTJ7+eG7QyC7wXG4YOr9bTIZPe21sdfoczOfSoLv0eVGALzunY5FUjxNyaaVqFxzZsDwSm/qW2pYKQ3L6rjEHnEbytP9NNXsMGJpzByYIiYTjD83dkBHKO4HgLoLQOnx7mr2reKxWCs0fGPMP1h3cYyu+d/9EUFFYbvcy4QXBkrlX/MU3ta1n2sqU3/oz/xhp3PCj8b76GXOg+y4RnYrzRZWSm5/xddIaUBlFnTHV/mOZnEgQay/RZ76Q/csGJb86e9OXJgrdLF1tyGgJ5gXxz/dnTyZCLeWSzIO3VJG8qVBgmD46zqxxKZz6HGuoBo7o5LEgX0+VOu5c5cQ2DJbeKiDYqfaPyCkPuSryyzctFrTJyD3LPjQ0YiR4OGtUse784+/QJcWF/LQ4EIvyXNuDtb/OEhYuZDu7lWpO64P7z6vLaZ74wnR8KgY8rYM/Px9bQwiY/gUiUr7zXaYICHEgorGAnXgroB90UWlfNeppm5OG8pJj0MsX6ck9WMsp+c+nOn/Jd1X/VHq9psNCwOW4eTHBMEHp5GeDi0R0PRfcGxA3w=]
+- key: MYSQL_ROOT_PASSWORD
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:ZIl5v411rxl60OgaSAWCDGHjGVAzUMca:vfVlV2zMEJgpdvFfKsRVNB/q/H3uP9KPVg/jGR3xKQ==]
+- key: MYSQL_DATABASE
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:oN48h4h3xbqPU59zY5aI/zt04GxdMfvl:w4yoOMATAllCeYht3GnATS/6yI1TRMScoI0B]
+- key: OWNER_LC
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:CluTikj6OPQ8Xm4HwZ62gROZFrC77/cm:ainUykOmr3ytPraLyv7GJ5gaGb/rAscK9aM=]
+- key: REPO_LC
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:DJaiL72rpcl8jEHwlau2jW2Ita+LAksl:luoqQeFMv7MKviIhQ1iNelHjf8pZ8JozS61d]
+- key: BACK_TAG
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:ecG9NWEYVNfV+nkFJelJexSspqujvtir:xN54/JRyVqqbvi7QS1AqoXECTxSg2vB+UGWC]
+- key: FRONT_TAG
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:0VKp0PSA1sMDzcAuUjbpTRA2oZ2wlvH5:qo3Br22fb0EEFjJYLWCzeU7VlkuZby3Zyyhn]
 features:
 - buildpack-stack=ubuntu-22
 ingress:
@@ -18,51 +74,12 @@ ingress:
         prefix: /
 name: green-it-scan-app
 region: fra
-envs:
-  - key: APP_ENV 
-    scope: RUN_AND_BUILD_TIME
-    value: prod
-  - key: APP_SECRET
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: DATABASE_URL
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_SECRET_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PUBLIC_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PASSPHRASE
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PRIVATE_KEY_B64
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PUBLIC_KEY_B64
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: MYSQL_ROOT_PASSWORD
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: MYSQL_DATABASE
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: OWNER_LC
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: REPO_LC
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: BACK_TAG
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: FRONT_TAG
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
 services:
-- http_port: 8080
+- envs:
+  - key: DEBUG_ENV
+    scope: RUN_AND_BUILD_TIME
+    value: "1"
+  http_port: 8080
   image:
     registry: yo-ikhelef
     registry_type: GHCR

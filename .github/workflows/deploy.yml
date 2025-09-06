@@ -31,22 +31,18 @@ jobs:
         with:
           token: ${{ secrets.DO_API_TOKEN }}
 
-      # (debug utile) pour vérifier quel spec tu appliques réellement
-      - name: Show spec we apply (masked)
+      - name: Prepare spec pinned to this commit
         run: |
-          echo "----- COMMIT: ${{ github.event.workflow_run.head_sha }}  BRANCH: ${{ github.event.workflow_run.head_branch }} -----"
-          sed -e 's/DATABASE_URL:.*/DATABASE_URL: (hidden)/' .do/app.yaml
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          SHORT="${SHA:0:7}"
+          awk -v s="$SHORT" '
+            $0 ~ "repository:.*greenitscan/backend" { print; getline; sub(/tag:.*/, "tag: sha-" s); print; next }
+            $0 ~ "repository:.*greenitscan/frontend" { print; getline; sub(/tag:.*/, "tag: sha-" s); print; next }
+            { print }
+          ' .do/app.yaml > .do/app.override.yaml
 
-      - name: Validate spec
-        run: doctl apps spec validate .do/app.yaml
+      - name: Validate spec (override)
+        run: doctl apps spec validate .do/app.override.yaml
 
-      - name: Update app from spec (triggers a deployment)
-        run: doctl apps update ${{ secrets.DO_APP_ID }} --spec .do/app.yaml
-
-      - name: Fetch current remote spec
-        run: doctl apps spec get ${{ secrets.DO_APP_ID }} > .do/app.remote.yaml
-
-      - name: Diff remote vs local spec
-        run: |
-          echo "----- DIFF (remote vs local) -----"
-          diff -u .do/app.remote.yaml .do/app.yaml || true
+      - name: Update app from spec (override)
+        run: doctl apps update ${{ secrets.DO_APP_ID }} --spec .do/app.override.yaml
