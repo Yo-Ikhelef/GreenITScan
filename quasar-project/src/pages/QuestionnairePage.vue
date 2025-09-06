@@ -2,7 +2,7 @@
   <q-page class="flex flex-center">
     <div class="q-pa-md">
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-        <h2 class="white-style">📧 Usages quotidiens</h2>
+        <h2 class="white-style">📧 Usage quotidien</h2>
         <q-input v-model.number="emailSimple" type="number" label="Combien d'emails envoyez-vous par jour ?" min="0" class="input-style" />
         <q-input v-model.number="emailPJ" type="number" label="...avec pièce jointe (1 Mo) ?" min="0" class="input-style" />
         <q-input v-model.number="webHours" type="number" label="Combien d'heures passez-vous sur internet par jour ?" min="0" class="input-style" />
