@@ -1,6 +1,50 @@
+# Spec file to use for deploying the app on DigitalOcean App Platform for the first time ONLY, using doctl. Add the value of the environment variables u need (Most important APP_SECRET, DATABASE_URL, JWT_PRIVATE_KEY_B64, JWT_PUBLIC_KEY_B64..)
 alerts:
 - rule: DEPLOYMENT_FAILED
 - rule: DOMAIN_FAILED
+envs:
+- key: APP_ENV
+  scope: RUN_AND_BUILD_TIME
+  value: prod
+- key: APP_SECRET
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: DATABASE_URL
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: JWT_SECRET_KEY
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: JWT_PUBLIC_KEY
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: JWT_PASSPHRASE
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: JWT_PRIVATE_KEY_B64
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: JWT_PUBLIC_KEY_B64
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: MYSQL_ROOT_PASSWORD
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: MYSQL_DATABASE
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: OWNER_LC
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: REPO_LC
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: BACK_TAG
+  scope: RUN_AND_BUILD_TIME
+  value: ""
+- key: FRONT_TAG
+  scope: RUN_AND_BUILD_TIME
+  value: ""
 features:
 - buildpack-stack=ubuntu-22
 ingress:
@@ -16,53 +60,26 @@ ingress:
     match:
       path:
         prefix: /
+jobs:
+- image:
+    registry: yo-ikhelef
+    registry_type: GHCR
+    repository: greenitscan/backend
+    tag: branch-prod
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-1gb
+  kind: PRE_DEPLOY
+  name: migrations
+  run_command: |
+    sh -lc "php bin/console doctrine:database:create --if-not-exists && php bin/console doctrine:migrations:migrate --no-interaction"
 name: green-it-scan-app
 region: fra
-envs:
-  - key: APP_ENV 
-    scope: RUN_AND_BUILD_TIME
-    value: prod
-  - key: APP_SECRET
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: DATABASE_URL
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_SECRET_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PUBLIC_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PASSPHRASE
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PRIVATE_KEY_B64
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: JWT_PUBLIC_KEY_B64
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: MYSQL_ROOT_PASSWORD
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: MYSQL_DATABASE
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: OWNER_LC
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: REPO_LC
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: BACK_TAG
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-  - key: FRONT_TAG
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
 services:
-- http_port: 8080
+- envs:
+  - key: DEBUG_ENV
+    scope: RUN_TIME
+    value: "0"
+  http_port: 8080
   image:
     registry: yo-ikhelef
     registry_type: GHCR
@@ -71,10 +88,6 @@ services:
   instance_count: 1
   instance_size_slug: apps-s-1vcpu-1gb
   name: yo-ikhelef-greenitscan-backend
-  envs:
-    - key: DEBUG_ENV
-      value: "1"
-      scope: RUN_TIME
 - http_port: 80
   image:
     registry: yo-ikhelef
