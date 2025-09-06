@@ -20,4 +20,4 @@ jobs:
           token: ${{ secrets.DO_API_TOKEN }}
 
       - name: Trigger redeploy with current spec (no spec file)
-        run: doctl apps deployments create ${{ secrets.DO_APP_ID }}
+        run: doctl apps create-deployment ${{ secrets.DO_APP_ID }}
